@@ -91,6 +91,28 @@ Development logs are printed for:
 
 A small development-only debug panel shows provider status, last HA error, and last entity action.
 
+### Local Toggle Test
+
+1. Confirm `.env` contains:
+
+```bash
+VITE_HA_BASE_URL=http://homeassistant.local:8123
+HA_TOKEN=your_home_assistant_long_lived_access_token
+```
+
+2. Restart the Vite server after changing `.env`.
+3. Open DevTools and click a device card, for example `Salon ceiling spots`.
+4. In the Network tab, confirm the browser calls:
+
+```text
+POST /ha-api/api/services/switch/turn_on
+GET /ha-api/api/states/switch.tvrt_slvn_salon_light_switch_1
+```
+
+5. In the console, confirm `[SmartHome] selected provider` shows `Home Assistant`, not `Mock`, and `[Vite HA Proxy] request` shows `tokenInjected: true`.
+
+If the provider is `Mock`, `VITE_HA_BASE_URL` was not loaded by Vite or the dev server was not restarted. If the service call returns `401`, the token is missing or invalid. If it returns a network/DNS error, the kiosk machine cannot reach `homeassistant.local:8123` from the current network.
+
 ## Production Home Assistant Setup
 
 On Vercel, the kiosk uses the serverless proxy at:
@@ -111,6 +133,8 @@ VITE_HA_API_BASE_PATH=/api/ha
 ```
 
 Do not set `VITE_HA_TOKEN`. Any `VITE_*` value is bundled into frontend code.
+
+Important: a public Vercel deployment usually cannot reach a Home Assistant instance that only exists on the villa's private local network. Production control requires a secure reachable Home Assistant URL, VPN/tunnel, reverse proxy, or another private server-side bridge. Without that, the Vercel UI can load, but device control will fail through `/api/ha/*`.
 
 The Vercel proxy forwards these paths to Home Assistant:
 

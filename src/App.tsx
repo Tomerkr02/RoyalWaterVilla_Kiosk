@@ -26,9 +26,10 @@ import type { Language, Translation } from './i18n/translations';
 import { useSmartHomeStore } from './store/useSmartHomeStore';
 import type { Device, DeviceArea, DeviceId } from './types/devices';
 
-type View = DeviceArea | 'allDevices';
+type AreaView = DeviceArea | 'allDevices';
+type View = 'home' | AreaView;
 
-const areaTabs: Array<{ id: View; icon: typeof Home; deviceIds: DeviceId[] }> = [
+const areaTabs: Array<{ id: AreaView; icon: typeof Home; deviceIds: DeviceId[] }> = [
   { id: 'salon', icon: Sofa, deviceIds: ['salonCeilingSpots', 'salonLedWall'] },
   { id: 'outdoor', icon: Trees, deviceIds: ['pergolaLight', 'wallLight', 'backPathwayLight', 'outdoorWallLight'] },
   { id: 'pool', icon: Waves, deviceIds: ['poolLight', 'outdoorBarLight'] },
@@ -47,7 +48,9 @@ const areaTabs: Array<{ id: View; icon: typeof Home; deviceIds: DeviceId[] }> = 
       'poolLight',
       'outdoorBarLight',
       'bathroomLight',
-      'bedroomFanLight'
+      'bedroomFanLight',
+      'ceilingFan',
+      'bathroomHeater'
     ]
   }
 ];
@@ -112,15 +115,15 @@ function LanguageSwitcher() {
   );
 }
 
-function LogoMark() {
+function LogoMark({ onClick }: { onClick: () => void }) {
   return (
-    <div className="rwv-logo">
+    <button type="button" className="rwv-logo" onClick={onClick} aria-label="Royal Water Villa home">
       <div className="rwv-crown">♛</div>
       <div>
         <span>Royal</span>
         <span>Water Villa</span>
       </div>
-    </div>
+    </button>
   );
 }
 
@@ -150,7 +153,8 @@ function AreaTabs({ selectedView, setSelectedView }: { selectedView: View; setSe
 }
 
 function TopBar({ selectedView, setSelectedView }: { selectedView: View; setSelectedView: (view: View) => void }) {
-  const { language } = useI18n();
+  const { language, t } = useI18n();
+  const health = useSmartHomeStore((store) => store.health);
   const clock = useClock(language);
 
   return (
@@ -164,15 +168,19 @@ function TopBar({ selectedView, setSelectedView }: { selectedView: View; setSele
           <span>{clock.date}</span>
         </div>
       </div>
-      <LogoMark />
+      <div className={['rwv-provider-chip', `rwv-provider-${health.status}`].join(' ')}>
+        <span />
+        <strong>{providerLabel(health.status, t)}</strong>
+      </div>
+      <LogoMark onClick={() => setSelectedView('home')} />
     </header>
   );
 }
 
 function Toggle({ isOn, pending, onClick, label }: { isOn: boolean; pending?: boolean; onClick: () => void; label: string }) {
   const { dir } = useI18n();
-  const activePosition = dir === 'rtl' ? 'translate-x-1.5' : 'translate-x-[3.15rem]';
-  const inactivePosition = dir === 'rtl' ? 'translate-x-[3.15rem]' : 'translate-x-1.5';
+  const activePosition = dir === 'rtl' ? 'translate-x-1.5' : 'translate-x-10';
+  const inactivePosition = dir === 'rtl' ? 'translate-x-10' : 'translate-x-1.5';
 
   return (
     <motion.button
@@ -321,14 +329,14 @@ function AllLightsActions() {
   );
 }
 
-function AreaDevicePanel({ selectedView }: { selectedView: View }) {
+function AreaDevicePanel({ selectedView }: { selectedView: AreaView }) {
   const { t } = useI18n();
   const devices = useSmartHomeStore((store) => store.devices);
   const selectedTab = areaTabs.find((tab) => tab.id === selectedView) ?? areaTabs[0];
   const visibleDevices = useMemo(() => devices.filter((device) => selectedTab.deviceIds.includes(device.id)), [devices, selectedTab.deviceIds]);
 
   return (
-    <section className="rwv-devices-section">
+    <section className="rwv-devices-section" aria-live="polite">
       <div className="rwv-panel-heading">
         <div>
           <span>{t.dashboard.selectedArea}</span>
@@ -394,7 +402,7 @@ function DevDebugPanel() {
 }
 
 export function App() {
-  const [selectedView, setSelectedView] = useState<View>('salon');
+  const [selectedView, setSelectedView] = useState<View>('home');
   const sync = useSmartHomeStore((store) => store.sync);
   const { dir, t } = useI18n();
 
@@ -414,9 +422,8 @@ export function App() {
   return (
     <div className="rwv-shell" dir={dir}>
       <TopBar selectedView={selectedView} setSelectedView={setSelectedView} />
-      <main className="rwv-dashboard">
-        <Hero />
-        <AreaDevicePanel selectedView={selectedView} />
+      <main className={['rwv-dashboard', selectedView === 'home' ? 'rwv-dashboard-home' : 'rwv-dashboard-area'].join(' ')}>
+        {selectedView === 'home' ? <Hero /> : <AreaDevicePanel selectedView={selectedView} />}
       </main>
       <BottomStatusCards />
       <DevDebugPanel />
