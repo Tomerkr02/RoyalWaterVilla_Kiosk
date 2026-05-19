@@ -55,7 +55,7 @@ export const useSmartHomeStore = create<SmartHomeStore>((set, get) => ({
       }));
     } catch (error) {
       set({
-        health: { status: 'error', label: 'Sync error' },
+        health: { status: 'error', label: 'Error' },
         error: error instanceof Error ? error.message : 'Unable to sync devices'
       });
     }
@@ -100,7 +100,7 @@ export const useSmartHomeStore = create<SmartHomeStore>((set, get) => ({
           ...store.pending,
           [deviceId]: false
         },
-        health: { status: 'error', label: 'Command failed' },
+        health: { status: 'error', label: 'Error' },
         error: error instanceof Error ? error.message : 'Unable to control device'
       }));
     }

@@ -11,5 +11,6 @@ export interface SmartHomeProvider {
   readonly name: string;
   getHealth(): ProviderHealth;
   getStates(): Promise<DeviceStateMap>;
+  getState(deviceId: DeviceId): Promise<DeviceState>;
   setState(deviceId: DeviceId, patch: Partial<DeviceState>): Promise<DeviceState>;
 }

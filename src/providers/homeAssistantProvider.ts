@@ -1,31 +1,33 @@
 import { devices } from '../config/devices';
-import type { DeviceId, DeviceState, DeviceStateMap } from '../types/devices';
+import type { Device, DeviceId, DeviceState, DeviceStateMap } from '../types/devices';
 import type { SmartHomeProvider } from './SmartHomeProvider';
 
 type HomeAssistantEntity = {
   entity_id: string;
   state: string;
   attributes?: {
-    percentage?: number;
     brightness?: number;
+    percentage?: number;
   };
 };
 
 type HomeAssistantConfig = {
-  baseUrl: string;
+  apiBaseUrl: string;
 };
 
-const deviceByEntity = new Map(devices.filter((device) => device.entityId).map((device) => [device.entityId, device]));
+const mappedDevices = devices.filter((device) => device.entityId);
+const deviceById = new Map(mappedDevices.map((device) => [device.id, device]));
+const deviceByEntity = new Map(mappedDevices.map((device) => [device.entityId, device]));
 
 function envConfig(): HomeAssistantConfig | null {
-  const baseUrl = import.meta.env.VITE_HA_PROXY_URL as string | undefined;
+  const haBaseUrl = import.meta.env.VITE_HA_BASE_URL as string | undefined;
 
-  if (!baseUrl) {
+  if (!haBaseUrl) {
     return null;
   }
 
   return {
-    baseUrl: baseUrl.replace(/\/$/, '')
+    apiBaseUrl: import.meta.env.DEV ? '/ha-api' : haBaseUrl.replace(/\/$/, '')
   };
 }
 
@@ -33,22 +35,21 @@ function domainFor(entityId: string) {
   return entityId.split('.')[0];
 }
 
-function serviceFor(deviceId: DeviceId, isOn: boolean) {
-  const device = devices.find((item) => item.id === deviceId);
-  if (!device?.entityId) {
-    throw new Error(`Missing Home Assistant entity for ${deviceId}`);
-  }
+function toDeviceState(entity: HomeAssistantEntity): DeviceState {
+  const unavailable = entity.state === 'unavailable' || entity.state === 'unknown';
+  const percentage = entity.attributes?.percentage;
 
-  const domain = domainFor(device.entityId);
-  if (domain === 'climate') {
-    return { domain, service: 'set_hvac_mode', data: { hvac_mode: isOn ? 'heat' : 'off' } };
-  }
-
-  return { domain, service: isOn ? 'turn_on' : 'turn_off', data: {} };
+  return {
+    isOn: entity.state === 'on' || entity.state === 'heat',
+    isAvailable: !unavailable,
+    brightness: entity.attributes?.brightness,
+    fanSpeed: typeof percentage === 'number' ? (Math.max(1, Math.ceil(percentage / 33)) as 1 | 2 | 3) : undefined,
+    lastSyncedAt: Date.now()
+  };
 }
 
 async function request<T>(config: HomeAssistantConfig, path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${config.baseUrl}${path}`, {
+  const response = await fetch(`${config.apiBaseUrl}${path}`, {
     ...init,
     headers: {
       'Content-Type': 'application/json',
@@ -57,10 +58,50 @@ async function request<T>(config: HomeAssistantConfig, path: string, init?: Requ
   });
 
   if (!response.ok) {
-    throw new Error(`Home Assistant request failed: ${response.status}`);
+    const detail = await response.text().catch(() => '');
+    throw new Error(`Home Assistant request failed: ${response.status}${detail ? ` ${detail}` : ''}`);
+  }
+
+  if (response.status === 204) {
+    return undefined as T;
   }
 
   return response.json() as Promise<T>;
+}
+
+function getMappedDevice(deviceId: DeviceId): Device {
+  const device = deviceById.get(deviceId);
+  if (!device?.entityId) {
+    throw new Error(`Missing Home Assistant entity for ${deviceId}`);
+  }
+
+  return device;
+}
+
+function serviceFor(device: Device, isOn: boolean) {
+  const domain = domainFor(device.entityId ?? '');
+
+  if (!['switch', 'light', 'fan', 'climate'].includes(domain)) {
+    throw new Error(`Unsupported Home Assistant domain: ${domain}`);
+  }
+
+  return {
+    domain,
+    service: isOn ? 'turn_on' : 'turn_off'
+  };
+}
+
+async function callPowerService(config: HomeAssistantConfig, device: Device, isOn: boolean) {
+  const service = serviceFor(device, isOn);
+  await request<unknown>(config, `/api/services/${service.domain}/${service.service}`, {
+    method: 'POST',
+    body: JSON.stringify({ entity_id: device.entityId })
+  });
+}
+
+async function fetchEntityState(config: HomeAssistantConfig, device: Device) {
+  const entity = await request<HomeAssistantEntity>(config, `/api/states/${device.entityId}`);
+  return toDeviceState(entity);
 }
 
 export function createHomeAssistantProvider(): SmartHomeProvider | null {
@@ -71,57 +112,45 @@ export function createHomeAssistantProvider(): SmartHomeProvider | null {
   }
 
   return {
-    name: 'Home Assistant Bridge',
-    getHealth: () => ({ status: 'connected', label: 'Home Assistant bridge' }),
+    name: 'Home Assistant',
+    getHealth: () => ({ status: 'connected', label: 'Connected' }),
     async getStates() {
-      const entities = await request<HomeAssistantEntity[]>(config, '/api/states');
-      const mapped = entities.reduce<Partial<DeviceStateMap>>((stateMap, entity) => {
-        const device = deviceByEntity.get(entity.entity_id);
-        if (!device) {
-          return stateMap;
-        }
+      const entityStates = await Promise.all(
+        mappedDevices.map(async (device) => {
+          const entity = await request<HomeAssistantEntity>(config, `/api/states/${device.entityId}`);
+          return [device.id, toDeviceState(entity)] as const;
+        })
+      );
 
-        stateMap[device.id] = {
-          isOn: entity.state === 'on' || entity.state === 'heat',
-          isAvailable: entity.state !== 'unavailable' && entity.state !== 'unknown',
-          brightness: entity.attributes?.brightness,
-          fanSpeed: entity.attributes?.percentage ? Math.ceil(entity.attributes.percentage / 33) as 1 | 2 | 3 : undefined,
-          lastSyncedAt: Date.now()
-        };
-        return stateMap;
-      }, {});
-
-      return mapped as DeviceStateMap;
+      return Object.fromEntries(entityStates) as DeviceStateMap;
+    },
+    async getState(deviceId) {
+      return fetchEntityState(config, getMappedDevice(deviceId));
     },
     async setState(deviceId, patch) {
-      const device = devices.find((item) => item.id === deviceId);
-      if (!device?.entityId) {
-        throw new Error(`Missing Home Assistant entity for ${deviceId}`);
-      }
+      const device = getMappedDevice(deviceId);
 
       if (typeof patch.isOn === 'boolean') {
-        const service = serviceFor(deviceId, patch.isOn);
-        await request(config, `/api/services/${service.domain}/${service.service}`, {
-          method: 'POST',
-          body: JSON.stringify({ entity_id: device.entityId, ...service.data })
-        });
+        await callPowerService(config, device, patch.isOn);
       }
 
       if (device.kind === 'fan' && typeof patch.fanSpeed === 'number') {
-        await request(config, '/api/services/fan/set_percentage', {
-          method: 'POST',
-          body: JSON.stringify({ entity_id: device.entityId, percentage: patch.fanSpeed * 33 })
-        });
+        if (patch.fanSpeed === 0) {
+          await callPowerService(config, device, false);
+        } else {
+          await callPowerService(config, device, true);
+          await request<unknown>(config, '/api/services/fan/set_percentage', {
+            method: 'POST',
+            body: JSON.stringify({ entity_id: device.entityId, percentage: patch.fanSpeed * 33 })
+          });
+        }
       }
 
-      const entity = await request<HomeAssistantEntity>(config, `/api/states/${device.entityId}`);
-      return {
-        isOn: entity.state === 'on' || entity.state === 'heat',
-        isAvailable: entity.state !== 'unavailable' && entity.state !== 'unknown',
-        brightness: entity.attributes?.brightness,
-        fanSpeed: entity.attributes?.percentage ? Math.ceil(entity.attributes.percentage / 33) as 1 | 2 | 3 : undefined,
-        lastSyncedAt: Date.now()
-      };
+      return fetchEntityState(config, device);
     }
   };
+}
+
+export function hasMappedEntity(entityId: string) {
+  return deviceByEntity.has(entityId);
 }

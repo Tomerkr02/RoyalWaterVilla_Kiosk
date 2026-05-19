@@ -9,10 +9,14 @@ export function createMockProvider(): SmartHomeProvider {
 
   return {
     name: 'Mock Villa',
-    getHealth: () => ({ status: 'mock', label: 'Mock mode' }),
+    getHealth: () => ({ status: 'mock', label: 'Mock Mode' }),
     async getStates() {
       await delay(160);
       return structuredClone(states);
+    },
+    async getState(deviceId: DeviceId) {
+      await delay(90);
+      return structuredClone(states[deviceId]);
     },
     async setState(deviceId: DeviceId, patch: Partial<DeviceState>) {
       await delay(220);
