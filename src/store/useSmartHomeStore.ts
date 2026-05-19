@@ -30,6 +30,7 @@ type SmartHomeStore = {
 };
 
 const provider = createProvider();
+const targetedSyncDelays = [300, 900, 1800] as const;
 
 function mergeStates(current: DeviceStateMap, incoming: Partial<DeviceStateMap>) {
   return Object.keys(current).reduce((next, key) => {
@@ -110,6 +111,65 @@ export const useSmartHomeStore = create<SmartHomeStore>((set, get) => ({
         lastHaError: undefined
       }
     }));
+    targetedSyncDelays.forEach((delay) => {
+      window.setTimeout(() => {
+        void (async () => {
+          try {
+            const refreshed = await get().provider.getState(deviceId);
+            const isFinalRefresh = delay === targetedSyncDelays[targetedSyncDelays.length - 1];
+            const shouldApplyRefresh = isFinalRefresh || typeof patch.isOn !== 'boolean' || refreshed.isOn === targetState;
+
+            set((store) => ({
+              states: shouldApplyRefresh
+                ? {
+                    ...store.states,
+                    [deviceId]: {
+                      ...store.states[deviceId],
+                      ...refreshed
+                    }
+                  }
+                : store.states,
+              pending: {
+                ...store.pending,
+                [deviceId]: isFinalRefresh ? false : store.pending[deviceId]
+              },
+              lastSyncAt: shouldApplyRefresh ? Date.now() : store.lastSyncAt,
+              health: store.provider.getHealth()
+            }));
+
+            if (import.meta.env.DEV) {
+              console.info('[SmartHome] targeted entity refresh', {
+                provider: get().provider.name,
+                deviceId,
+                mappedEntityId: device?.entityId,
+                delayMs: delay,
+                applied: shouldApplyRefresh,
+                refreshed
+              });
+            }
+          } catch (error) {
+            const isFinalRefresh = delay === targetedSyncDelays[targetedSyncDelays.length - 1];
+            if (isFinalRefresh) {
+              set((store) => ({
+                pending: {
+                  ...store.pending,
+                  [deviceId]: false
+                }
+              }));
+            }
+            if (import.meta.env.DEV) {
+              console.warn('[SmartHome] targeted entity refresh failed', {
+                provider: get().provider.name,
+                deviceId,
+                mappedEntityId: device?.entityId,
+                delayMs: delay,
+                error
+              });
+            }
+          }
+        })();
+      }, delay);
+    });
 
     try {
       const confirmed = await get().provider.setState(deviceId, patch);
@@ -121,16 +181,19 @@ export const useSmartHomeStore = create<SmartHomeStore>((set, get) => ({
           confirmed
         });
       }
+      const shouldApplyConfirmed = get().provider.name === 'Mock' || typeof patch.isOn !== 'boolean' || confirmed.isOn === targetState;
       set((store) => ({
-        states: {
-          ...store.states,
-          [deviceId]: { ...optimisticState, ...confirmed }
-        },
+        states: shouldApplyConfirmed
+          ? {
+              ...store.states,
+              [deviceId]: { ...optimisticState, ...confirmed }
+            }
+          : store.states,
         pending: {
           ...store.pending,
-          [deviceId]: false
+          [deviceId]: store.provider.name === 'Mock' ? false : store.pending[deviceId]
         },
-        lastSyncAt: Date.now(),
+        lastSyncAt: shouldApplyConfirmed ? Date.now() : store.lastSyncAt,
         health: store.provider.getHealth(),
         debug: {
           ...store.debug,

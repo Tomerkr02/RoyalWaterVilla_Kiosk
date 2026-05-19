@@ -3,8 +3,6 @@ import { AnimatePresence, motion } from 'framer-motion';
 import {
   Bath,
   BedDouble,
-  Check,
-  CirclePower,
   Clock3,
   Fan,
   Gauge,
@@ -178,10 +176,6 @@ function TopBar({ selectedView, setSelectedView }: { selectedView: View; setSele
 }
 
 function Toggle({ isOn, pending, onClick, label }: { isOn: boolean; pending?: boolean; onClick: () => void; label: string }) {
-  const { dir } = useI18n();
-  const activePosition = dir === 'rtl' ? 'translate-x-1.5' : 'translate-x-10';
-  const inactivePosition = dir === 'rtl' ? 'translate-x-10' : 'translate-x-1.5';
-
   return (
     <motion.button
       type="button"
@@ -194,9 +188,7 @@ function Toggle({ isOn, pending, onClick, label }: { isOn: boolean; pending?: bo
       }}
       className={['rwv-toggle', isOn ? 'rwv-toggle-on' : '', pending ? 'animate-pulse' : ''].join(' ')}
     >
-      <motion.span layout transition={{ type: 'spring', stiffness: 520, damping: 34 }} className={isOn ? activePosition : inactivePosition}>
-        {isOn ? <Check size={16} /> : <CirclePower size={16} />}
-      </motion.span>
+      <span className="rwv-toggle-thumb" />
     </motion.button>
   );
 }
@@ -217,7 +209,7 @@ function DeviceCard({ device }: { device: Device }) {
       initial={{ opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}
       whileTap={{ scale: 0.985 }}
-      className={['rwv-device-card', state.isOn ? 'rwv-device-on' : '', error ? 'rwv-device-error' : ''].join(' ')}
+      className={['rwv-device-card', state.isOn ? 'rwv-device-on' : '', pending ? 'rwv-device-syncing' : '', error ? 'rwv-device-error' : ''].join(' ')}
       onClick={() => void toggleDevice(device.id)}
     >
       <div className="rwv-device-top">
@@ -234,8 +226,10 @@ function DeviceCard({ device }: { device: Device }) {
       <h3>{copy.name}</h3>
       <p>{copy.subtitle}</p>
       <div className="rwv-device-status">
-        <span className={state.isOn ? 'rwv-status-on' : 'rwv-status-off'}>{state.isOn ? t.app.on : t.app.off}</span>
-        <small>{pending ? t.app.sending : `${t.app.synced} ${formatTime(state.lastSyncedAt, language, t.app.notSynced)}`}</small>
+        <span className={pending ? 'rwv-status-syncing' : state.isOn ? 'rwv-status-on' : 'rwv-status-off'}>
+          {pending ? t.app.sending : state.isOn ? t.app.on : t.app.off}
+        </span>
+        <small>{pending ? t.app.synced : `${t.app.synced} ${formatTime(state.lastSyncedAt, language, t.app.notSynced)}`}</small>
       </div>
       {device.kind === 'fan' ? (
         <div className="rwv-fan-speed">
