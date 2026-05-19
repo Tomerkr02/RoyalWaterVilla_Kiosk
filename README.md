@@ -93,22 +93,85 @@ A small development-only debug panel shows provider status, last HA error, and l
 
 ## Production Home Assistant Setup
 
-For production, serve the kiosk behind a local reverse proxy or small server that handles Home Assistant authentication outside the browser.
+On Vercel, the kiosk uses the serverless proxy at:
 
-Set:
-
-```bash
-VITE_HA_BASE_URL=https://your-local-kiosk-proxy.example
+```text
+/api/ha/*
 ```
 
-That proxy should forward these paths to Home Assistant:
+The browser never receives the Home Assistant token. The Vercel function reads `HA_BASE_URL` and `HA_TOKEN` server-side, then forwards requests to Home Assistant.
+
+Set these Vercel environment variables:
+
+```bash
+HA_BASE_URL=https://your-home-assistant.example.com
+HA_TOKEN=your_home_assistant_long_lived_access_token
+VITE_ENABLE_HA=true
+VITE_HA_API_BASE_PATH=/api/ha
+```
+
+Do not set `VITE_HA_TOKEN`. Any `VITE_*` value is bundled into frontend code.
+
+The Vercel proxy forwards these paths to Home Assistant:
 
 ```text
 /api/states/<entity_id>
 /api/services/<domain>/<service>
 ```
 
-The proxy, not the frontend, should add the Home Assistant bearer token.
+The proxy, not the frontend, adds:
+
+```text
+Authorization: Bearer <HA_TOKEN>
+```
+
+## Vercel Deployment
+
+The repository includes:
+
+- `vercel.json` for Vite output, SPA refresh/deep route rewrites, and cache headers.
+- `api/ha/[...path].js` for production-safe Home Assistant proxying.
+
+Deploy steps:
+
+1. Push the repository to GitHub.
+2. Create a new Vercel project from the repository.
+3. Use the default framework detection or set:
+
+```text
+Framework Preset: Vite
+Build Command: npm run build
+Output Directory: dist
+Install Command: npm install
+```
+
+4. Add the environment variables listed above in Vercel Project Settings.
+5. Deploy.
+
+To deploy from the Vercel CLI:
+
+```bash
+npm install -g vercel
+vercel login
+vercel
+vercel env add HA_BASE_URL production
+vercel env add HA_TOKEN production
+vercel env add VITE_ENABLE_HA production
+vercel env add VITE_HA_API_BASE_PATH production
+vercel --prod
+```
+
+For `VITE_ENABLE_HA`, use:
+
+```text
+true
+```
+
+For `VITE_HA_API_BASE_PATH`, use:
+
+```text
+/api/ha
+```
 
 ## Mapped Devices
 

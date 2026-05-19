@@ -21,15 +21,31 @@ const deviceById = new Map(mappedDevices.map((device) => [device.id, device]));
 const deviceByEntity = new Map(mappedDevices.map((device) => [device.entityId, device]));
 
 function envConfig(): HomeAssistantConfig | null {
-  const haBaseUrl = import.meta.env.VITE_HA_BASE_URL as string | undefined;
+  const localHaBaseUrl = import.meta.env.VITE_HA_BASE_URL as string | undefined;
+  const productionHaEnabled = import.meta.env.VITE_ENABLE_HA === 'true';
+  const productionApiBasePath = (import.meta.env.VITE_HA_API_BASE_PATH as string | undefined) ?? '/api/ha';
 
-  if (!haBaseUrl) {
+  if (import.meta.env.DEV && localHaBaseUrl) {
+    return {
+      apiBaseUrl: '/ha-api',
+      configuredBaseUrl: localHaBaseUrl.replace(/\/$/, '')
+    };
+  }
+
+  if (!import.meta.env.DEV && productionHaEnabled) {
+    return {
+      apiBaseUrl: productionApiBasePath.replace(/\/$/, ''),
+      configuredBaseUrl: productionApiBasePath.replace(/\/$/, '')
+    };
+  }
+
+  if (!localHaBaseUrl) {
     return null;
   }
 
   return {
-    apiBaseUrl: import.meta.env.DEV ? '/ha-api' : haBaseUrl.replace(/\/$/, ''),
-    configuredBaseUrl: haBaseUrl.replace(/\/$/, '')
+    apiBaseUrl: localHaBaseUrl.replace(/\/$/, ''),
+    configuredBaseUrl: localHaBaseUrl.replace(/\/$/, '')
   };
 }
 
