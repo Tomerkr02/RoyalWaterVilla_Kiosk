@@ -1,48 +1,97 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import {
   Bath,
   BedDouble,
+  Check,
+  CirclePower,
   Fan,
-  Flame,
   Home,
   Lamp,
   Moon,
   Power,
   RefreshCw,
+  ShieldCheck,
   Sparkles,
   Sun,
+  ThermometerSun,
   Trees,
   Waves
 } from 'lucide-react';
-import blueWaterNightImage from './assets/images/royal-water-villa-blue-water-night-view-25.png';
 import bedroomImage from './assets/images/royal-water-villa-bedroom-lighting-design-18.png';
+import blueWaterNightImage from './assets/images/royal-water-villa-blue-water-night-view-25.png';
 import outdoorImage from './assets/images/royal-water-villa-outdoor-lounge-night-08.png';
 import poolImage from './assets/images/royal-water-villa-pool-fruit-tray-20.png';
 import { KioskButton } from './components/KioskButton';
-import { areaLabels } from './config/devices';
 import { useSmartHomeStore } from './store/useSmartHomeStore';
-import type { Device, DeviceArea, DeviceId } from './types/devices';
+import type { Device, DeviceArea } from './types/devices';
 
-type View = 'home' | 'lights' | 'scenes' | 'comfort';
+type View = 'overview' | DeviceArea | 'quick';
 
 const areaIcons: Record<DeviceArea, typeof Home> = {
   salon: Home,
   outdoor: Trees,
   pool: Waves,
   bedroom: BedDouble,
-  bathroom: Bath
+  bathroom: ThermometerSun
 };
 
-const navItems: Array<{ id: View; label: string; icon: typeof Home }> = [
-  { id: 'home', label: 'Villa', icon: Home },
-  { id: 'lights', label: 'Lights', icon: Lamp },
-  { id: 'scenes', label: 'Scenes', icon: Sparkles },
-  { id: 'comfort', label: 'Comfort', icon: Fan }
+const sectionTabs: Array<{ id: View; label: string; icon: typeof Home }> = [
+  { id: 'overview', label: 'Overview', icon: Home },
+  { id: 'salon', label: 'Salon', icon: Lamp },
+  { id: 'outdoor', label: 'Pergola', icon: Trees },
+  { id: 'pool', label: 'Pool', icon: Waves },
+  { id: 'bedroom', label: 'Bedroom', icon: BedDouble },
+  { id: 'bathroom', label: 'Heater', icon: Bath },
+  { id: 'quick', label: 'Actions', icon: Sparkles }
 ];
+
+const sectionCopy: Record<View, { kicker: string; title: string; subtitle: string }> = {
+  overview: {
+    kicker: 'Royal Water Villa',
+    title: 'Guest comfort, tuned instantly.',
+    subtitle: 'A calm wall-mounted control surface for lighting, pool ambience, bedroom airflow, and bathroom heat.'
+  },
+  salon: {
+    kicker: 'Salon',
+    title: 'Warm interior atmosphere.',
+    subtitle: 'Ceiling spots and ambient wall lighting for arrival, hosting, and quiet evenings.'
+  },
+  outdoor: {
+    kicker: 'Outdoor / Pergola',
+    title: 'Terrace lighting with one touch.',
+    subtitle: 'Pergola, wall, and back pathway controls for the villa exterior.'
+  },
+  pool: {
+    kicker: 'Pool',
+    title: 'Evening glow by the water.',
+    subtitle: 'Pool and bar lighting for night swims and outdoor hosting.'
+  },
+  bedroom: {
+    kicker: 'Bedroom',
+    title: 'Soft light and airflow.',
+    subtitle: 'Fan light and ceiling fan controls designed for bedside use.'
+  },
+  bathroom: {
+    kicker: 'Bathroom heater',
+    title: 'Fast shower comfort.',
+    subtitle: 'A simple heat control with clear status for guests.'
+  },
+  quick: {
+    kicker: 'Quick actions',
+    title: 'Scenes for the whole villa.',
+    subtitle: 'Apply polished presets immediately, then confirm state through the provider layer.'
+  }
+};
+
+const cardVariants = {
+  hidden: { opacity: 0, y: 18, scale: 0.98 },
+  visible: { opacity: 1, y: 0, scale: 1 }
+};
 
 function formatTime(timestamp?: number) {
   if (!timestamp) {
-    return 'Not synced yet';
+    return 'Not synced';
   }
 
   return new Intl.DateTimeFormat('en', { hour: '2-digit', minute: '2-digit' }).format(timestamp);
@@ -50,24 +99,32 @@ function formatTime(timestamp?: number) {
 
 function Toggle({ isOn, pending, onClick, label }: { isOn: boolean; pending?: boolean; onClick: () => void; label: string }) {
   return (
-    <button
+    <motion.button
       type="button"
       aria-label={label}
       aria-pressed={isOn}
-      onClick={onClick}
+      onClick={(event) => {
+        event.stopPropagation();
+        onClick();
+      }}
+      whileTap={{ scale: 0.92 }}
       className={[
-        'touch-feedback relative h-14 w-28 shrink-0 rounded-full border transition',
-        isOn ? 'border-gold bg-gold/90 shadow-glow' : 'border-white/15 bg-white/10',
+        'relative h-16 w-32 shrink-0 rounded-full border transition duration-150',
+        isOn ? 'border-gold bg-gold/90 shadow-glow' : 'border-white/20 bg-white/10',
         pending ? 'animate-pulse' : ''
       ].join(' ')}
     >
-      <span
+      <motion.span
+        layout
+        transition={{ type: 'spring', stiffness: 520, damping: 34 }}
         className={[
-          'absolute top-1.5 h-11 w-11 rounded-full bg-pearl shadow-xl transition-transform',
-          isOn ? 'translate-x-14' : 'translate-x-1.5'
+          'absolute top-1.5 grid h-[3.25rem] w-[3.25rem] place-items-center rounded-full bg-pearl text-ink shadow-xl',
+          isOn ? 'translate-x-[4.15rem]' : 'translate-x-1.5'
         ].join(' ')}
-      />
-    </button>
+      >
+        {isOn ? <Check size={18} /> : <CirclePower size={18} />}
+      </motion.span>
+    </motion.button>
   );
 }
 
@@ -79,14 +136,23 @@ function DeviceCard({ device }: { device: Device }) {
   const Icon = areaIcons[device.area];
 
   return (
-    <article className={['device-card', state.isOn ? 'device-card-on' : ''].join(' ')}>
+    <motion.article
+      layout
+      variants={cardVariants}
+      initial="hidden"
+      animate="visible"
+      whileTap={{ scale: 0.985 }}
+      transition={{ type: 'spring', stiffness: 360, damping: 30 }}
+      className={['device-card', state.isOn ? 'device-card-on' : ''].join(' ')}
+      onClick={() => void toggleDevice(device.id)}
+    >
       <div className="flex items-start justify-between gap-5">
         <div className="min-w-0">
-          <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-lg bg-white/10 text-gold">
+          <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-lg bg-white/10 text-gold">
             <Icon size={26} />
           </div>
           <h3 className="text-2xl font-semibold leading-tight text-pearl">{device.name}</h3>
-          <p className="mt-2 text-base text-mist">{device.subtitle}</p>
+          <p className="mt-2 text-base leading-6 text-mist">{device.subtitle}</p>
         </div>
         <Toggle
           isOn={state.isOn}
@@ -104,159 +170,278 @@ function DeviceCard({ device }: { device: Device }) {
       {device.kind === 'fan' ? (
         <div className="mt-6 grid grid-cols-4 gap-2">
           {([0, 1, 2, 3] as const).map((speed) => (
-            <button
+            <motion.button
               key={speed}
               type="button"
+              whileTap={{ scale: 0.94 }}
               className={[
-                'touch-feedback rounded-lg border px-3 py-3 text-sm font-bold transition',
+                'rounded-lg border px-3 py-3 text-sm font-bold transition',
                 state.fanSpeed === speed ? 'border-gold bg-gold text-ink' : 'border-white/10 bg-white/10 text-pearl'
               ].join(' ')}
-              onClick={() => void setFanSpeed(device.id, speed)}
+              onClick={(event) => {
+                event.stopPropagation();
+                void setFanSpeed(device.id, speed);
+              }}
             >
               {speed === 0 ? 'Off' : speed}
-            </button>
+            </motion.button>
           ))}
         </div>
       ) : null}
-    </article>
+    </motion.article>
   );
 }
 
 function HeroPanel({ setView }: { setView: (view: View) => void }) {
   const states = useSmartHomeStore((store) => store.states);
   const allOff = useSmartHomeStore((store) => store.allOff);
+  const sync = useSmartHomeStore((store) => store.sync);
+  const health = useSmartHomeStore((store) => store.health);
+  const lastSyncAt = useSmartHomeStore((store) => store.lastSyncAt);
   const activeCount = Object.values(states).filter((state) => state.isOn).length;
 
   return (
-    <section className="hero-panel">
+    <motion.section className="hero-panel" layout>
       <img src={blueWaterNightImage} alt="" className="absolute inset-0 h-full w-full object-cover" />
-      <div className="absolute inset-0 bg-gradient-to-r from-ink/92 via-ink/50 to-ink/10" />
-      <div className="relative z-10 flex h-full max-w-3xl flex-col justify-end p-8">
-        <p className="mb-3 text-lg font-semibold uppercase tracking-[0.18em] text-gold">Royal Water Villa</p>
-        <h1 className="text-6xl font-semibold leading-tight text-pearl">Welcome home by the water</h1>
-        <p className="mt-5 max-w-2xl text-xl leading-8 text-mist">
-          Control lights, pool ambience, bedroom comfort, and bathroom heat with instant tablet feedback.
-        </p>
-        <div className="mt-8 flex flex-wrap gap-3">
-          <KioskButton tone="primary" icon={<Lamp size={22} />} onClick={() => setView('lights')}>
-            Lighting
-          </KioskButton>
-          <KioskButton icon={<Power size={22} />} tone="danger" onClick={() => void allOff()}>
-            All Off
-          </KioskButton>
+      <div className="absolute inset-0 bg-gradient-to-r from-ink/95 via-ink/60 to-ink/10" />
+      <div className="absolute inset-0 bg-gradient-to-t from-ink/70 via-transparent to-transparent" />
+      <div className="relative z-10 flex h-full flex-col justify-between p-8">
+        <div className="flex items-start justify-between gap-6">
+          <div>
+            <p className="section-kicker">Royal Water Villa</p>
+            <h1 className="max-w-3xl text-6xl font-semibold leading-[1.02] text-pearl">Guest comfort, tuned instantly.</h1>
+          </div>
+          <div className="glass-chip">
+            <ShieldCheck size={20} className="text-gold" />
+            <span>{health.label}</span>
+          </div>
         </div>
-        <div className="mt-8 inline-flex w-fit items-center gap-3 rounded-lg border border-white/10 bg-black/25 px-4 py-3 text-pearl backdrop-blur-xl">
-          <Sun size={20} className="text-gold" />
-          <span className="text-lg font-semibold">{activeCount}</span>
-          <span className="text-mist">devices active</span>
+        <div>
+          <p className="max-w-2xl text-xl leading-8 text-mist">
+            Salon lighting, pergola ambience, pool glow, bedroom airflow, and bathroom heat in one calm tablet surface.
+          </p>
+          <div className="mt-8 flex flex-wrap gap-3">
+            <KioskButton tone="primary" icon={<Lamp size={22} />} onClick={() => setView('salon')}>
+              Start Lights
+            </KioskButton>
+            <KioskButton icon={<Sparkles size={22} />} onClick={() => setView('quick')}>
+              Scenes
+            </KioskButton>
+            <KioskButton icon={<Power size={22} />} tone="danger" onClick={() => void allOff()}>
+              All Off
+            </KioskButton>
+          </div>
         </div>
+        <div className="grid grid-cols-3 gap-3">
+          <button type="button" className="metric-card" onClick={() => setView('overview')}>
+            <span>{activeCount}</span>
+            <small>devices active</small>
+          </button>
+          <button type="button" className="metric-card" onClick={() => void sync()}>
+            <span>{formatTime(lastSyncAt)}</span>
+            <small>last sync</small>
+          </button>
+          <button type="button" className="metric-card" onClick={() => setView('pool')}>
+            <span>Pool</span>
+            <small>evening ready</small>
+          </button>
+        </div>
+      </div>
+    </motion.section>
+  );
+}
+
+function QuickActionsPanel() {
+  const scenes = useSmartHomeStore((store) => store.scenes);
+  const applyScene = useSmartHomeStore((store) => store.applyScene);
+  const allOff = useSmartHomeStore((store) => store.allOff);
+
+  return (
+    <section className="panel p-5">
+      <div className="mb-5 flex items-center justify-between">
+        <div>
+          <p className="section-kicker">One tap</p>
+          <h2 className="text-3xl font-semibold text-pearl">Quick actions</h2>
+        </div>
+        <Sparkles className="text-gold" size={30} />
+      </div>
+      <div className="grid gap-3">
+        {scenes.map((scene) => (
+          <motion.button
+            key={scene.id}
+            type="button"
+            whileTap={{ scale: 0.975 }}
+            className="scene-row"
+            onClick={() => void applyScene(scene.id)}
+          >
+            <span>
+              <strong>{scene.name}</strong>
+              <small>{scene.description}</small>
+            </span>
+            <Sparkles size={20} />
+          </motion.button>
+        ))}
+        <motion.button type="button" whileTap={{ scale: 0.975 }} className="scene-row scene-row-danger" onClick={() => void allOff()}>
+          <span>
+            <strong>Villa Off</strong>
+            <small>Power down all mapped guest devices.</small>
+          </span>
+          <Power size={20} />
+        </motion.button>
       </div>
     </section>
   );
 }
 
-function HomeView({ setView }: { setView: (view: View) => void }) {
-  const scenes = useSmartHomeStore((store) => store.scenes);
-  const applyScene = useSmartHomeStore((store) => store.applyScene);
-
+function AmbientImagePanel() {
   return (
-    <div className="grid h-full grid-cols-[1.25fr_0.75fr] gap-5">
+    <div className="ambient-stack">
+      <img src={outdoorImage} alt="Royal Water Villa outdoor lounge at night" />
+      <img src={poolImage} alt="Royal Water Villa pool setting" />
+    </div>
+  );
+}
+
+function HomeView({ setView }: { setView: (view: View) => void }) {
+  return (
+    <div className="dashboard-grid">
       <HeroPanel setView={setView} />
-      <div className="grid gap-5">
-        <img src={outdoorImage} alt="Royal Water Villa outdoor lounge at night" className="h-56 w-full rounded-lg object-cover shadow-panel" />
-        <section className="panel">
-          <div className="mb-5 flex items-center justify-between">
-            <h2 className="text-3xl font-semibold text-pearl">Signature scenes</h2>
-            <Sparkles className="text-gold" size={28} />
-          </div>
-          <div className="grid gap-3">
-            {scenes.slice(0, 2).map((scene) => (
-              <button key={scene.id} type="button" className="scene-row touch-feedback" onClick={() => void applyScene(scene.id)}>
-                <span>
-                  <strong>{scene.name}</strong>
-                  <small>{scene.description}</small>
-                </span>
-                <Sparkles size={20} />
-              </button>
-            ))}
-          </div>
-        </section>
+      <div className="side-stack">
+        <QuickActionsPanel />
+        <AmbientImagePanel />
       </div>
     </div>
   );
 }
 
-function DeviceGrid({ filter }: { filter?: (device: Device) => boolean }) {
-  const devices = useSmartHomeStore((store) => store.devices);
-  const visibleDevices = filter ? devices.filter(filter) : devices;
-  const grouped = useMemo(
-    () =>
-      visibleDevices.reduce<Partial<Record<DeviceArea, Device[]>>>((groups, device) => {
-        groups[device.area] = [...(groups[device.area] ?? []), device];
-        return groups;
-      }, {}),
-    [visibleDevices]
-  );
+function SectionHeader({ view, count }: { view: View; count: number }) {
+  const copy = sectionCopy[view];
+  const activeTab = sectionTabs.find((tab) => tab.id === view);
+  const Icon = activeTab?.icon ?? Home;
 
   return (
-    <div className="space-y-7">
-      {(Object.keys(areaLabels) as DeviceArea[]).map((area) =>
-        grouped[area]?.length ? (
-          <section key={area}>
-            <h2 className="mb-4 text-2xl font-semibold text-gold">{areaLabels[area]}</h2>
-            <div className="grid grid-cols-2 gap-4 xl:grid-cols-3">
-              {grouped[area]?.map((device) => <DeviceCard key={device.id} device={device} />)}
-            </div>
-          </section>
-        ) : null
-      )}
-    </div>
+    <motion.div className="section-header" layout>
+      <div className="section-icon">
+        <Icon size={28} />
+      </div>
+      <div>
+        <p className="section-kicker">{copy.kicker}</p>
+        <h1>{copy.title}</h1>
+        <p>
+          {copy.subtitle} {view !== 'quick' && view !== 'overview' ? `${count} mapped controls.` : ''}
+        </p>
+      </div>
+    </motion.div>
   );
 }
 
-function LightsView() {
-  return <DeviceGrid filter={(device) => device.kind === 'light' || device.kind === 'switch'} />;
-}
+function DeviceGrid({ view }: { view: Exclude<View, 'quick'> }) {
+  const devices = useSmartHomeStore((store) => store.devices);
+  const visibleDevices = view === 'overview' ? devices : devices.filter((device) => device.area === view);
 
-function ComfortView() {
-  return <DeviceGrid filter={(device) => device.kind === 'fan' || device.kind === 'heater'} />;
+  return (
+    <div>
+      <SectionHeader view={view} count={visibleDevices.length} />
+      <motion.div className="device-grid" initial="hidden" animate="visible" transition={{ staggerChildren: 0.045 }}>
+        {visibleDevices.map((device: Device) => (
+          <DeviceCard key={device.id} device={device} />
+        ))}
+      </motion.div>
+    </div>
+  );
 }
 
 function ScenesView() {
   const scenes = useSmartHomeStore((store) => store.scenes);
   const applyScene = useSmartHomeStore((store) => store.applyScene);
+  const allOff = useSmartHomeStore((store) => store.allOff);
   const imageMap = [outdoorImage, poolImage, bedroomImage];
 
   return (
-    <div className="grid grid-cols-3 gap-5">
-      {scenes.map((scene, index) => (
-        <button key={scene.id} type="button" className="scene-card touch-feedback" onClick={() => void applyScene(scene.id)}>
-          <img src={imageMap[index % imageMap.length]} alt="" className="absolute inset-0 h-full w-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-t from-ink/90 via-ink/35 to-transparent" />
+    <div>
+      <SectionHeader view="quick" count={scenes.length} />
+      <div className="scene-grid">
+        {scenes.map((scene, index) => (
+          <motion.button
+            key={scene.id}
+            type="button"
+            whileTap={{ scale: 0.982 }}
+            initial={{ opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.04 }}
+            className="scene-card"
+            onClick={() => void applyScene(scene.id)}
+          >
+            <img src={imageMap[index % imageMap.length]} alt="" className="absolute inset-0 h-full w-full object-cover" />
+            <div className="absolute inset-0 bg-gradient-to-t from-ink/92 via-ink/35 to-transparent" />
+            <span className="relative z-10 mt-auto block p-6 text-left">
+              <Sparkles className="mb-5 text-gold" size={32} />
+              <strong className="block text-4xl font-semibold text-pearl">{scene.name}</strong>
+              <small className="mt-3 block text-lg leading-7 text-mist">{scene.description}</small>
+            </span>
+          </motion.button>
+        ))}
+        <motion.button
+          type="button"
+          whileTap={{ scale: 0.982 }}
+          initial={{ opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: scenes.length * 0.04 }}
+          className="scene-card scene-card-off"
+          onClick={() => void allOff()}
+        >
+          <div className="absolute inset-0 bg-gradient-to-br from-coral/35 via-ink to-ink" />
           <span className="relative z-10 mt-auto block p-6 text-left">
-            <Sparkles className="mb-5 text-gold" size={32} />
-            <strong className="block text-4xl font-semibold text-pearl">{scene.name}</strong>
-            <small className="mt-3 block text-lg leading-7 text-mist">{scene.description}</small>
+            <Moon className="mb-5 text-coral" size={32} />
+            <strong className="block text-4xl font-semibold text-pearl">Villa Off</strong>
+            <small className="mt-3 block text-lg leading-7 text-mist">Quiet everything for the night.</small>
           </span>
-        </button>
-      ))}
+        </motion.button>
+      </div>
     </div>
   );
 }
 
-function Header() {
+function Header({ view, setView }: { view: View; setView: (view: View) => void }) {
   const sync = useSmartHomeStore((store) => store.sync);
   const health = useSmartHomeStore((store) => store.health);
   const lastSyncAt = useSmartHomeStore((store) => store.lastSyncAt);
   const error = useSmartHomeStore((store) => store.error);
+  const states = useSmartHomeStore((store) => store.states);
+  const activeCount = Object.values(states).filter((state) => state.isOn).length;
 
   return (
-    <header className="mb-6 flex items-center justify-between gap-4">
+    <header className="top-bar">
       <div>
-        <p className="text-sm font-semibold uppercase tracking-[0.18em] text-gold">Guest Control</p>
-        <h2 className="mt-1 text-4xl font-semibold text-pearl">Royal Water Villa</h2>
+        <p className="section-kicker">Guest tablet</p>
+        <h2>Royal Water Villa</h2>
       </div>
-      <div className="flex items-center gap-3">
+      <div className="section-tabs" aria-label="Villa sections">
+        {sectionTabs.map((item) => {
+          const Icon = item.icon;
+          const active = item.id === view;
+          return (
+            <motion.button
+              key={item.id}
+              type="button"
+              title={item.label}
+              aria-label={item.label}
+              aria-pressed={active}
+              whileTap={{ scale: 0.94 }}
+              onClick={() => setView(item.id)}
+              className={['section-tab', active ? 'section-tab-active' : ''].join(' ')}
+            >
+              <Icon size={22} />
+              <span>{item.label}</span>
+            </motion.button>
+          );
+        })}
+      </div>
+      <div className="top-status">
+        <span className="connection-pill">
+          <span className="status-dot" />
+          {activeCount} active
+        </span>
         <span className={['connection-pill', health.status === 'error' ? 'connection-error' : ''].join(' ')}>
           {error ?? health.label} · {formatTime(lastSyncAt)}
         </span>
@@ -269,7 +454,7 @@ function Header() {
 }
 
 export function App() {
-  const [view, setView] = useState<View>('home');
+  const [view, setView] = useState<View>('overview');
   const sync = useSmartHomeStore((store) => store.sync);
 
   useEffect(() => {
@@ -290,44 +475,30 @@ export function App() {
     };
   }, [sync]);
 
-  const content = {
-    home: <HomeView setView={setView} />,
-    lights: <LightsView />,
-    scenes: <ScenesView />,
-    comfort: <ComfortView />
-  }[view];
+  const content =
+    view === 'overview' ? <HomeView setView={setView} /> : view === 'quick' ? <ScenesView /> : <DeviceGrid view={view} />;
 
   return (
     <div className="min-h-screen overflow-hidden bg-ink text-pearl">
-      <div className="fixed inset-0 bg-[radial-gradient(circle_at_top_left,rgba(15,106,107,0.45),transparent_32%),linear-gradient(135deg,#061818,#0b2f32_45%,#061818)]" />
-      <div className="relative z-10 grid h-screen grid-cols-[104px_1fr] p-4">
-        <nav className="panel flex flex-col items-center gap-4 p-3">
-          <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-lg bg-gold text-ink">
-            <Sun size={30} />
-          </div>
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            return (
-              <button
-                key={item.id}
-                type="button"
-                title={item.label}
-                aria-label={item.label}
-                onClick={() => setView(item.id)}
-                className={['nav-button touch-feedback', view === item.id ? 'nav-button-active' : ''].join(' ')}
-              >
-                <Icon size={26} />
-                <span>{item.label}</span>
-              </button>
-            );
-          })}
-        </nav>
-        <main className="min-w-0 overflow-y-auto px-5 pb-4 pt-2">
-          <div className="rotate-hint">For the best experience, rotate the tablet to landscape.</div>
-          <Header />
-          {content}
-        </main>
-      </div>
+      <div className="fixed inset-0 bg-[radial-gradient(circle_at_top_left,rgba(214,181,109,0.14),transparent_28%),radial-gradient(circle_at_80%_20%,rgba(15,106,107,0.42),transparent_34%),linear-gradient(135deg,#061818,#092c2f_48%,#061818)]" />
+      <main className="relative z-10 flex h-screen flex-col overflow-hidden p-4">
+        <div className="rotate-hint">For the best experience, rotate the tablet to landscape.</div>
+        <Header view={view} setView={setView} />
+        <section className="min-h-0 flex-1 overflow-y-auto pr-1">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={view}
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.22, ease: 'easeOut' }}
+            >
+              {content}
+            </motion.div>
+          </AnimatePresence>
+        </section>
+        <div className="home-indicator" />
+      </main>
     </div>
   );
 }

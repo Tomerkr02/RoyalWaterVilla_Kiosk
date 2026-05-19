@@ -13,22 +13,19 @@ type HomeAssistantEntity = {
 
 type HomeAssistantConfig = {
   baseUrl: string;
-  token: string;
 };
 
 const deviceByEntity = new Map(devices.filter((device) => device.entityId).map((device) => [device.entityId, device]));
 
 function envConfig(): HomeAssistantConfig | null {
-  const baseUrl = import.meta.env.VITE_HA_URL as string | undefined;
-  const token = import.meta.env.VITE_HA_TOKEN as string | undefined;
+  const baseUrl = import.meta.env.VITE_HA_PROXY_URL as string | undefined;
 
-  if (!baseUrl || !token) {
+  if (!baseUrl) {
     return null;
   }
 
   return {
-    baseUrl: baseUrl.replace(/\/$/, ''),
-    token
+    baseUrl: baseUrl.replace(/\/$/, '')
   };
 }
 
@@ -54,7 +51,6 @@ async function request<T>(config: HomeAssistantConfig, path: string, init?: Requ
   const response = await fetch(`${config.baseUrl}${path}`, {
     ...init,
     headers: {
-      Authorization: `Bearer ${config.token}`,
       'Content-Type': 'application/json',
       ...init?.headers
     }
@@ -75,8 +71,8 @@ export function createHomeAssistantProvider(): SmartHomeProvider | null {
   }
 
   return {
-    name: 'Home Assistant',
-    getHealth: () => ({ status: 'connected', label: 'Home Assistant' }),
+    name: 'Home Assistant Bridge',
+    getHealth: () => ({ status: 'connected', label: 'Home Assistant bridge' }),
     async getStates() {
       const entities = await request<HomeAssistantEntity[]>(config, '/api/states');
       const mapped = entities.reduce<Partial<DeviceStateMap>>((stateMap, entity) => {

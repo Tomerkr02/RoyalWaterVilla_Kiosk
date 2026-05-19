@@ -9,13 +9,21 @@
 }
 
 * {
+  box-sizing: border-box;
   -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
 }
 
 body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
+  overflow: hidden;
 }
 
 button {
@@ -23,25 +31,74 @@ button {
 }
 
 .panel {
-  @apply rounded-lg border border-white/10 bg-white/[0.075] shadow-panel backdrop-blur-2xl;
+  @apply rounded-[1.35rem] border border-white/10 bg-white/[0.075] shadow-panel backdrop-blur-2xl;
+}
+
+.top-bar {
+  @apply mb-4 grid shrink-0 grid-cols-[220px_1fr_auto] items-center gap-4 rounded-[1.35rem] border border-white/10 bg-black/20 p-3 shadow-panel backdrop-blur-2xl;
+}
+
+.top-bar h2 {
+  @apply mt-1 text-3xl font-semibold leading-none text-pearl;
+}
+
+.section-tabs {
+  @apply grid grid-cols-7 gap-2;
+}
+
+.section-tab {
+  @apply flex min-h-16 flex-col items-center justify-center gap-1 rounded-xl border border-transparent px-2 text-xs font-semibold text-mist transition duration-150;
+}
+
+.section-tab-active {
+  @apply border-gold/50 bg-gold/20 text-gold shadow-glow;
+}
+
+.top-status {
+  @apply flex items-center justify-end gap-2;
 }
 
 .hero-panel {
-  @apply relative min-h-[calc(100vh-8.5rem)] overflow-hidden rounded-lg border border-white/10 shadow-panel;
+  @apply relative min-h-[calc(100vh-7.25rem)] overflow-hidden rounded-[1.6rem] border border-white/10 shadow-panel;
+}
+
+.dashboard-grid {
+  @apply grid min-h-[calc(100vh-7.25rem)] grid-cols-[1.42fr_0.58fr] gap-4;
+}
+
+.side-stack {
+  @apply grid min-h-0 grid-rows-[auto_1fr] gap-4;
+}
+
+.ambient-stack {
+  @apply grid min-h-0 grid-rows-2 gap-4;
+}
+
+.ambient-stack img {
+  @apply h-full min-h-0 w-full rounded-[1.35rem] border border-white/10 object-cover shadow-panel;
+}
+
+.device-grid {
+  @apply grid grid-cols-3 gap-4 pb-6;
 }
 
 .device-card {
-  @apply rounded-lg border border-white/10 bg-white/[0.075] p-5 shadow-panel backdrop-blur-2xl transition duration-200;
+  @apply cursor-pointer rounded-[1.35rem] border border-white/10 bg-white/[0.075] p-5 shadow-panel outline-none backdrop-blur-2xl transition duration-150;
+}
+
+.device-card:hover {
+  @apply border-white/20 bg-white/[0.095];
 }
 
 .device-card-on {
-  @apply border-gold/45 bg-gold/[0.13] shadow-glow;
+  @apply border-gold/50 bg-gold/[0.13] shadow-glow;
 }
 
 .status-pill-on,
 .status-pill-off,
-.connection-pill {
-  @apply inline-flex min-h-9 items-center rounded-full px-4 py-1 text-sm font-semibold;
+.connection-pill,
+.glass-chip {
+  @apply inline-flex min-h-9 items-center gap-2 rounded-full px-4 py-1 text-sm font-semibold;
 }
 
 .status-pill-on {
@@ -52,24 +109,29 @@ button {
   @apply bg-white/10 text-mist;
 }
 
-.connection-pill {
-  @apply border border-white/10 bg-white/10 text-mist;
+.connection-pill,
+.glass-chip {
+  @apply border border-white/10 bg-white/10 text-mist backdrop-blur-xl;
 }
 
 .connection-error {
-  @apply border-coral/40 bg-coral/15 text-pearl;
+  @apply border-coral/40 bg-coral/20 text-pearl;
 }
 
-.nav-button {
-  @apply flex h-20 w-full flex-col items-center justify-center gap-1 rounded-lg border border-transparent text-xs font-semibold text-mist transition;
-}
-
-.nav-button-active {
-  @apply border-gold/45 bg-gold/15 text-gold;
+.status-dot {
+  @apply block h-2.5 w-2.5 rounded-full bg-gold shadow-glow;
 }
 
 .scene-row {
-  @apply flex items-center justify-between gap-4 rounded-lg border border-white/10 bg-white/10 p-4 text-left text-pearl transition;
+  @apply flex min-h-20 items-center justify-between gap-4 rounded-xl border border-white/10 bg-white/10 p-4 text-left text-pearl transition duration-150;
+}
+
+.scene-row:hover {
+  @apply border-gold/30 bg-white/20;
+}
+
+.scene-row-danger {
+  @apply border-coral/30 bg-coral/20;
 }
 
 .scene-row strong {
@@ -80,8 +142,52 @@ button {
   @apply mt-1 block text-sm leading-6 text-mist;
 }
 
+.scene-grid {
+  @apply grid grid-cols-4 gap-4 pb-6;
+}
+
 .scene-card {
-  @apply relative flex min-h-[62vh] overflow-hidden rounded-lg border border-white/10 text-left shadow-panel;
+  @apply relative flex min-h-[58vh] overflow-hidden rounded-[1.35rem] border border-white/10 text-left shadow-panel transition;
+}
+
+.scene-card-off {
+  @apply border-coral/25;
+}
+
+.metric-card {
+  @apply rounded-2xl border border-white/10 bg-black/25 p-4 text-left text-pearl backdrop-blur-xl transition duration-150;
+}
+
+.metric-card:active {
+  transform: scale(0.975);
+}
+
+.metric-card span {
+  @apply block text-2xl font-semibold;
+}
+
+.metric-card small {
+  @apply mt-1 block text-sm text-mist;
+}
+
+.section-header {
+  @apply mb-4 flex items-center gap-4 rounded-[1.35rem] border border-white/10 bg-black/20 p-5 shadow-panel backdrop-blur-2xl;
+}
+
+.section-header h1 {
+  @apply text-4xl font-semibold leading-tight text-pearl;
+}
+
+.section-header p:not(.section-kicker) {
+  @apply mt-2 text-lg leading-7 text-mist;
+}
+
+.section-kicker {
+  @apply text-xs font-bold uppercase tracking-[0.22em] text-gold;
+}
+
+.section-icon {
+  @apply grid h-16 w-16 shrink-0 place-items-center rounded-2xl border border-gold/30 bg-gold/20 text-gold;
 }
 
 .touch-feedback {
@@ -93,7 +199,11 @@ button {
 }
 
 .rotate-hint {
-  @apply mb-4 hidden rounded-lg border border-gold/30 bg-ink/80 px-4 py-3 text-sm font-semibold text-pearl;
+  @apply mb-4 hidden rounded-xl border border-gold/30 bg-ink/80 px-4 py-3 text-sm font-semibold text-pearl;
+}
+
+.home-indicator {
+  @apply pointer-events-none mx-auto mt-2 h-1 w-28 shrink-0 rounded-full bg-white/25;
 }
 
 @media (orientation: portrait) {
@@ -102,12 +212,43 @@ button {
   }
 }
 
-@media (max-width: 900px) {
-  .hero-panel h1 {
-    @apply text-4xl;
+@media (max-width: 1180px) {
+  .top-bar {
+    @apply grid-cols-[190px_1fr] gap-3;
   }
 
-  .scene-card {
-    @apply min-h-80;
+  .top-status {
+    @apply col-span-2 justify-between;
+  }
+
+  .dashboard-grid {
+    @apply grid-cols-1;
+  }
+
+  .hero-panel {
+    @apply min-h-[34rem];
+  }
+
+  .device-grid,
+  .scene-grid {
+    @apply grid-cols-2;
+  }
+}
+
+@media (max-width: 900px) {
+  .section-tabs {
+    @apply grid-cols-4;
+  }
+
+  .top-bar {
+    @apply grid-cols-1;
+  }
+
+  .top-status {
+    @apply col-span-1 flex-wrap justify-start;
+  }
+
+  .hero-panel h1 {
+    @apply text-4xl;
   }
 }
