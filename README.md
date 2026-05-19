@@ -2,6 +2,16 @@
 
 Premium tablet-first smart-room kiosk for Royal Water Villa.
 
+## Languages
+
+The kiosk supports:
+
+- Hebrew (`HE`) - default, RTL
+- English (`EN`) - LTR
+- French (`FR`) - LTR
+
+The selected language is saved in `localStorage`.
+
 ## Local Development
 
 Install dependencies:
@@ -65,6 +75,22 @@ Vite forwards those requests to `VITE_HA_BASE_URL` and adds:
 Authorization: Bearer <HA_TOKEN>
 ```
 
+Do not prefix `HA_TOKEN` with `VITE_`. `VITE_*` values are exposed to the browser; `HA_TOKEN` is read only by the Vite dev server.
+
+Development logs are printed for:
+
+- selected provider
+- HA base URL
+- mapped entity id
+- device id
+- current state
+- target state
+- service domain and service name
+- request URL
+- response status and body
+
+A small development-only debug panel shows provider status, last HA error, and last entity action.
+
 ## Production Home Assistant Setup
 
 For production, serve the kiosk behind a local reverse proxy or small server that handles Home Assistant authentication outside the browser.
@@ -101,6 +127,8 @@ Supported mapped entities:
 - Back pathway light
 - Pool light
 - Outdoor bar light
+- Outdoor wall light
+- Bathroom light
 - Bedroom fan light
 - Ceiling fan
 - Bathroom heater

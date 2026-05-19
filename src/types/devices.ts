@@ -10,6 +10,8 @@ export type DeviceId =
   | 'backPathwayLight'
   | 'poolLight'
   | 'outdoorBarLight'
+  | 'outdoorWallLight'
+  | 'bathroomLight'
   | 'bedroomFanLight'
   | 'ceilingFan'
   | 'bathroomHeater';
@@ -38,7 +40,7 @@ export type Device = {
 export type DeviceStateMap = Record<DeviceId, DeviceState>;
 
 export type Scene = {
-  id: string;
+  id: 'arrival' | 'poolEvening' | 'sleep';
   name: string;
   description: string;
   deviceStates: Partial<Record<DeviceId, Partial<DeviceState>>>;

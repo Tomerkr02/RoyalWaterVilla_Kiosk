@@ -5,7 +5,6 @@ import {
   BedDouble,
   Check,
   CirclePower,
-  Fan,
   Home,
   Lamp,
   Moon,
@@ -13,7 +12,6 @@ import {
   RefreshCw,
   ShieldCheck,
   Sparkles,
-  Sun,
   ThermometerSun,
   Trees,
   Waves
@@ -23,6 +21,8 @@ import blueWaterNightImage from './assets/images/royal-water-villa-blue-water-ni
 import outdoorImage from './assets/images/royal-water-villa-outdoor-lounge-night-08.png';
 import poolImage from './assets/images/royal-water-villa-pool-fruit-tray-20.png';
 import { KioskButton } from './components/KioskButton';
+import { useI18n, useLanguageStore } from './i18n/useLanguageStore';
+import type { Language, Translation } from './i18n/translations';
 import { useSmartHomeStore } from './store/useSmartHomeStore';
 import type { Device, DeviceArea } from './types/devices';
 
@@ -36,68 +36,77 @@ const areaIcons: Record<DeviceArea, typeof Home> = {
   bathroom: ThermometerSun
 };
 
-const sectionTabs: Array<{ id: View; label: string; icon: typeof Home }> = [
-  { id: 'overview', label: 'Overview', icon: Home },
-  { id: 'salon', label: 'Salon', icon: Lamp },
-  { id: 'outdoor', label: 'Pergola', icon: Trees },
-  { id: 'pool', label: 'Pool', icon: Waves },
-  { id: 'bedroom', label: 'Bedroom', icon: BedDouble },
-  { id: 'bathroom', label: 'Heater', icon: Bath },
-  { id: 'quick', label: 'Actions', icon: Sparkles }
+const sectionTabs: Array<{ id: View; icon: typeof Home }> = [
+  { id: 'overview', icon: Home },
+  { id: 'salon', icon: Lamp },
+  { id: 'outdoor', icon: Trees },
+  { id: 'pool', icon: Waves },
+  { id: 'bedroom', icon: BedDouble },
+  { id: 'bathroom', icon: Bath },
+  { id: 'quick', icon: Sparkles }
 ];
-
-const sectionCopy: Record<View, { kicker: string; title: string; subtitle: string }> = {
-  overview: {
-    kicker: 'Royal Water Villa',
-    title: 'Guest comfort, tuned instantly.',
-    subtitle: 'A calm wall-mounted control surface for lighting, pool ambience, bedroom airflow, and bathroom heat.'
-  },
-  salon: {
-    kicker: 'Salon',
-    title: 'Warm interior atmosphere.',
-    subtitle: 'Ceiling spots and ambient wall lighting for arrival, hosting, and quiet evenings.'
-  },
-  outdoor: {
-    kicker: 'Outdoor / Pergola',
-    title: 'Terrace lighting with one touch.',
-    subtitle: 'Pergola, wall, and back pathway controls for the villa exterior.'
-  },
-  pool: {
-    kicker: 'Pool',
-    title: 'Evening glow by the water.',
-    subtitle: 'Pool and bar lighting for night swims and outdoor hosting.'
-  },
-  bedroom: {
-    kicker: 'Bedroom',
-    title: 'Soft light and airflow.',
-    subtitle: 'Fan light and ceiling fan controls designed for bedside use.'
-  },
-  bathroom: {
-    kicker: 'Bathroom heater',
-    title: 'Fast shower comfort.',
-    subtitle: 'A simple heat control with clear status for guests.'
-  },
-  quick: {
-    kicker: 'Quick actions',
-    title: 'Scenes for the whole villa.',
-    subtitle: 'Apply polished presets immediately, then confirm state through the provider layer.'
-  }
-};
 
 const cardVariants = {
   hidden: { opacity: 0, y: 18, scale: 0.98 },
   visible: { opacity: 1, y: 0, scale: 1 }
 };
 
-function formatTime(timestamp?: number) {
+function formatTime(timestamp: number | undefined, language: Language, notSynced: string) {
   if (!timestamp) {
-    return 'Not synced';
+    return notSynced;
   }
 
-  return new Intl.DateTimeFormat('en', { hour: '2-digit', minute: '2-digit' }).format(timestamp);
+  const locale = language === 'he' ? 'he-IL' : language === 'fr' ? 'fr-FR' : 'en-US';
+  return new Intl.DateTimeFormat(locale, { hour: '2-digit', minute: '2-digit' }).format(timestamp);
 }
 
-function Toggle({ isOn, pending, onClick, label }: { isOn: boolean; pending?: boolean; onClick: () => void; label: string }) {
+function providerLabel(status: string, t: Translation) {
+  if (status === 'mock') {
+    return t.app.mockMode;
+  }
+  if (status === 'connected') {
+    return t.app.connected;
+  }
+  return t.app.error;
+}
+
+function LanguageSwitcher() {
+  const { language, t } = useI18n();
+  const setLanguage = useLanguageStore((state) => state.setLanguage);
+  const languages: Language[] = ['he', 'en', 'fr'];
+
+  return (
+    <div className="language-switcher" aria-label="Language">
+      {languages.map((item) => (
+        <motion.button
+          key={item}
+          type="button"
+          whileTap={{ scale: 0.94 }}
+          className={['language-button', language === item ? 'language-button-active' : ''].join(' ')}
+          onClick={() => setLanguage(item)}
+        >
+          {t.languageLabels[item]}
+        </motion.button>
+      ))}
+    </div>
+  );
+}
+
+function Toggle({
+  isOn,
+  pending,
+  onClick,
+  label
+}: {
+  isOn: boolean;
+  pending?: boolean;
+  onClick: () => void;
+  label: string;
+}) {
+  const { dir } = useI18n();
+  const activePosition = dir === 'rtl' ? 'translate-x-1.5' : 'translate-x-[4.15rem]';
+  const inactivePosition = dir === 'rtl' ? 'translate-x-[4.15rem]' : 'translate-x-1.5';
+
   return (
     <motion.button
       type="button"
@@ -119,7 +128,7 @@ function Toggle({ isOn, pending, onClick, label }: { isOn: boolean; pending?: bo
         transition={{ type: 'spring', stiffness: 520, damping: 34 }}
         className={[
           'absolute top-1.5 grid h-[3.25rem] w-[3.25rem] place-items-center rounded-full bg-pearl text-ink shadow-xl',
-          isOn ? 'translate-x-[4.15rem]' : 'translate-x-1.5'
+          isOn ? activePosition : inactivePosition
         ].join(' ')}
       >
         {isOn ? <Check size={18} /> : <CirclePower size={18} />}
@@ -129,11 +138,14 @@ function Toggle({ isOn, pending, onClick, label }: { isOn: boolean; pending?: bo
 }
 
 function DeviceCard({ device }: { device: Device }) {
+  const { language, t } = useI18n();
   const state = useSmartHomeStore((store) => store.states[device.id]);
   const pending = useSmartHomeStore((store) => store.pending[device.id]);
+  const error = useSmartHomeStore((store) => store.error);
   const toggleDevice = useSmartHomeStore((store) => store.toggleDevice);
   const setFanSpeed = useSmartHomeStore((store) => store.setFanSpeed);
   const Icon = areaIcons[device.area];
+  const copy = t.devices[device.id];
 
   return (
     <motion.article
@@ -143,7 +155,7 @@ function DeviceCard({ device }: { device: Device }) {
       animate="visible"
       whileTap={{ scale: 0.985 }}
       transition={{ type: 'spring', stiffness: 360, damping: 30 }}
-      className={['device-card', state.isOn ? 'device-card-on' : ''].join(' ')}
+      className={['device-card', state.isOn ? 'device-card-on' : '', error ? 'device-card-error' : ''].join(' ')}
       onClick={() => void toggleDevice(device.id)}
     >
       <div className="flex items-start justify-between gap-5">
@@ -151,20 +163,22 @@ function DeviceCard({ device }: { device: Device }) {
           <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-lg bg-white/10 text-gold">
             <Icon size={26} />
           </div>
-          <h3 className="text-2xl font-semibold leading-tight text-pearl">{device.name}</h3>
-          <p className="mt-2 text-base leading-6 text-mist">{device.subtitle}</p>
+          <h3 className="text-2xl font-semibold leading-tight text-pearl">{copy.name}</h3>
+          <p className="mt-2 text-base leading-6 text-mist">{copy.subtitle}</p>
         </div>
         <Toggle
           isOn={state.isOn}
           pending={pending}
-          label={`${state.isOn ? 'Turn off' : 'Turn on'} ${device.name}`}
+          label={`${state.isOn ? t.app.turnOff : t.app.turnOn} ${copy.name}`}
           onClick={() => void toggleDevice(device.id)}
         />
       </div>
 
       <div className="mt-6 flex items-center justify-between gap-3">
-        <span className={state.isOn ? 'status-pill-on' : 'status-pill-off'}>{state.isOn ? 'On' : 'Off'}</span>
-        <span className="text-sm text-mist">{pending ? 'Sending...' : `Synced ${formatTime(state.lastSyncedAt)}`}</span>
+        <span className={state.isOn ? 'status-pill-on' : 'status-pill-off'}>{state.isOn ? t.app.on : t.app.off}</span>
+        <span className="text-sm text-mist">
+          {pending ? t.app.sending : `${t.app.synced} ${formatTime(state.lastSyncedAt, language, t.app.notSynced)}`}
+        </span>
       </div>
 
       {device.kind === 'fan' ? (
@@ -183,7 +197,7 @@ function DeviceCard({ device }: { device: Device }) {
                 void setFanSpeed(device.id, speed);
               }}
             >
-              {speed === 0 ? 'Off' : speed}
+              {speed === 0 ? t.app.fanOff : speed}
             </motion.button>
           ))}
         </div>
@@ -193,6 +207,7 @@ function DeviceCard({ device }: { device: Device }) {
 }
 
 function HeroPanel({ setView }: { setView: (view: View) => void }) {
+  const { language, t } = useI18n();
   const states = useSmartHomeStore((store) => store.states);
   const allOff = useSmartHomeStore((store) => store.allOff);
   const sync = useSmartHomeStore((store) => store.sync);
@@ -208,42 +223,40 @@ function HeroPanel({ setView }: { setView: (view: View) => void }) {
       <div className="relative z-10 flex h-full flex-col justify-between p-8">
         <div className="flex items-start justify-between gap-6">
           <div>
-            <p className="section-kicker">Royal Water Villa</p>
-            <h1 className="max-w-3xl text-6xl font-semibold leading-[1.02] text-pearl">Guest comfort, tuned instantly.</h1>
+            <p className="section-kicker">{t.sections.overview.kicker}</p>
+            <h1 className="max-w-3xl text-6xl font-semibold leading-[1.02] text-pearl">{t.sections.overview.title}</h1>
           </div>
           <div className="glass-chip">
             <ShieldCheck size={20} className="text-gold" />
-            <span>{health.label}</span>
+            <span>{providerLabel(health.status, t)}</span>
           </div>
         </div>
         <div>
-          <p className="max-w-2xl text-xl leading-8 text-mist">
-            Salon lighting, pergola ambience, pool glow, bedroom airflow, and bathroom heat in one calm tablet surface.
-          </p>
+          <p className="max-w-2xl text-xl leading-8 text-mist">{t.sections.overview.subtitle}</p>
           <div className="mt-8 flex flex-wrap gap-3">
             <KioskButton tone="primary" icon={<Lamp size={22} />} onClick={() => setView('salon')}>
-              Start Lights
+              {t.app.startLights}
             </KioskButton>
             <KioskButton icon={<Sparkles size={22} />} onClick={() => setView('quick')}>
-              Scenes
+              {t.app.scenes}
             </KioskButton>
             <KioskButton icon={<Power size={22} />} tone="danger" onClick={() => void allOff()}>
-              All Off
+              {t.app.allOff}
             </KioskButton>
           </div>
         </div>
         <div className="grid grid-cols-3 gap-3">
           <button type="button" className="metric-card" onClick={() => setView('overview')}>
             <span>{activeCount}</span>
-            <small>devices active</small>
+            <small>{t.app.devicesActive}</small>
           </button>
           <button type="button" className="metric-card" onClick={() => void sync()}>
-            <span>{formatTime(lastSyncAt)}</span>
-            <small>last sync</small>
+            <span>{formatTime(lastSyncAt, language, t.app.notSynced)}</span>
+            <small>{t.app.lastSync}</small>
           </button>
           <button type="button" className="metric-card" onClick={() => setView('pool')}>
-            <span>Pool</span>
-            <small>evening ready</small>
+            <span>{t.nav.pool}</span>
+            <small>{t.app.poolReady}</small>
           </button>
         </div>
       </div>
@@ -252,6 +265,7 @@ function HeroPanel({ setView }: { setView: (view: View) => void }) {
 }
 
 function QuickActionsPanel() {
+  const { t } = useI18n();
   const scenes = useSmartHomeStore((store) => store.scenes);
   const applyScene = useSmartHomeStore((store) => store.applyScene);
   const allOff = useSmartHomeStore((store) => store.allOff);
@@ -260,8 +274,8 @@ function QuickActionsPanel() {
     <section className="panel p-5">
       <div className="mb-5 flex items-center justify-between">
         <div>
-          <p className="section-kicker">One tap</p>
-          <h2 className="text-3xl font-semibold text-pearl">Quick actions</h2>
+          <p className="section-kicker">{t.app.oneTap}</p>
+          <h2 className="text-3xl font-semibold text-pearl">{t.app.quickActions}</h2>
         </div>
         <Sparkles className="text-gold" size={30} />
       </div>
@@ -275,16 +289,16 @@ function QuickActionsPanel() {
             onClick={() => void applyScene(scene.id)}
           >
             <span>
-              <strong>{scene.name}</strong>
-              <small>{scene.description}</small>
+              <strong>{t.scenes[scene.id].name}</strong>
+              <small>{t.scenes[scene.id].description}</small>
             </span>
             <Sparkles size={20} />
           </motion.button>
         ))}
         <motion.button type="button" whileTap={{ scale: 0.975 }} className="scene-row scene-row-danger" onClick={() => void allOff()}>
           <span>
-            <strong>Villa Off</strong>
-            <small>Power down all mapped guest devices.</small>
+            <strong>{t.app.villaOff}</strong>
+            <small>{t.app.villaOffDescription}</small>
           </span>
           <Power size={20} />
         </motion.button>
@@ -296,8 +310,8 @@ function QuickActionsPanel() {
 function AmbientImagePanel() {
   return (
     <div className="ambient-stack">
-      <img src={outdoorImage} alt="Royal Water Villa outdoor lounge at night" />
-      <img src={poolImage} alt="Royal Water Villa pool setting" />
+      <img src={outdoorImage} alt="" />
+      <img src={poolImage} alt="" />
     </div>
   );
 }
@@ -315,7 +329,8 @@ function HomeView({ setView }: { setView: (view: View) => void }) {
 }
 
 function SectionHeader({ view, count }: { view: View; count: number }) {
-  const copy = sectionCopy[view];
+  const { t } = useI18n();
+  const copy = t.sections[view];
   const activeTab = sectionTabs.find((tab) => tab.id === view);
   const Icon = activeTab?.icon ?? Home;
 
@@ -328,7 +343,7 @@ function SectionHeader({ view, count }: { view: View; count: number }) {
         <p className="section-kicker">{copy.kicker}</p>
         <h1>{copy.title}</h1>
         <p>
-          {copy.subtitle} {view !== 'quick' && view !== 'overview' ? `${count} mapped controls.` : ''}
+          {copy.subtitle} {view !== 'quick' && view !== 'overview' ? `${count} ${t.app.mappedControls}.` : ''}
         </p>
       </div>
     </motion.div>
@@ -352,6 +367,7 @@ function DeviceGrid({ view }: { view: Exclude<View, 'quick'> }) {
 }
 
 function ScenesView() {
+  const { t } = useI18n();
   const scenes = useSmartHomeStore((store) => store.scenes);
   const applyScene = useSmartHomeStore((store) => store.applyScene);
   const allOff = useSmartHomeStore((store) => store.allOff);
@@ -376,8 +392,8 @@ function ScenesView() {
             <div className="absolute inset-0 bg-gradient-to-t from-ink/92 via-ink/35 to-transparent" />
             <span className="relative z-10 mt-auto block p-6 text-left">
               <Sparkles className="mb-5 text-gold" size={32} />
-              <strong className="block text-4xl font-semibold text-pearl">{scene.name}</strong>
-              <small className="mt-3 block text-lg leading-7 text-mist">{scene.description}</small>
+              <strong className="block text-4xl font-semibold text-pearl">{t.scenes[scene.id].name}</strong>
+              <small className="mt-3 block text-lg leading-7 text-mist">{t.scenes[scene.id].description}</small>
             </span>
           </motion.button>
         ))}
@@ -393,8 +409,8 @@ function ScenesView() {
           <div className="absolute inset-0 bg-gradient-to-br from-coral/35 via-ink to-ink" />
           <span className="relative z-10 mt-auto block p-6 text-left">
             <Moon className="mb-5 text-coral" size={32} />
-            <strong className="block text-4xl font-semibold text-pearl">Villa Off</strong>
-            <small className="mt-3 block text-lg leading-7 text-mist">Quiet everything for the night.</small>
+            <strong className="block text-4xl font-semibold text-pearl">{t.app.villaOff}</strong>
+            <small className="mt-3 block text-lg leading-7 text-mist">{t.app.villaOffDescription}</small>
           </span>
         </motion.button>
       </div>
@@ -402,19 +418,44 @@ function ScenesView() {
   );
 }
 
+function DevDebugPanel() {
+  const { t } = useI18n();
+  const health = useSmartHomeStore((store) => store.health);
+  const debug = useSmartHomeStore((store) => store.debug);
+
+  if (!import.meta.env.DEV) {
+    return null;
+  }
+
+  return (
+    <aside className="debug-panel">
+      <strong>{t.app.debugTitle}</strong>
+      <span>
+        {t.app.providerStatus}: {providerLabel(health.status, t)}
+      </span>
+      <span>
+        {t.app.lastHaError}: {debug.lastHaError ?? t.app.none}
+      </span>
+      <span>
+        {t.app.lastEntityAction}: {debug.lastEntityAction ?? t.app.none}
+      </span>
+    </aside>
+  );
+}
+
 function Header({ view, setView }: { view: View; setView: (view: View) => void }) {
+  const { language, t } = useI18n();
   const sync = useSmartHomeStore((store) => store.sync);
   const health = useSmartHomeStore((store) => store.health);
   const lastSyncAt = useSmartHomeStore((store) => store.lastSyncAt);
-  const error = useSmartHomeStore((store) => store.error);
   const states = useSmartHomeStore((store) => store.states);
   const activeCount = Object.values(states).filter((state) => state.isOn).length;
 
   return (
     <header className="top-bar">
       <div>
-        <p className="section-kicker">Guest tablet</p>
-        <h2>Royal Water Villa</h2>
+        <p className="section-kicker">{t.app.guestTablet}</p>
+        <h2>{t.app.brand}</h2>
       </div>
       <div className="section-tabs" aria-label="Villa sections">
         {sectionTabs.map((item) => {
@@ -424,29 +465,30 @@ function Header({ view, setView }: { view: View; setView: (view: View) => void }
             <motion.button
               key={item.id}
               type="button"
-              title={item.label}
-              aria-label={item.label}
+              title={t.nav[item.id]}
+              aria-label={t.nav[item.id]}
               aria-pressed={active}
               whileTap={{ scale: 0.94 }}
               onClick={() => setView(item.id)}
               className={['section-tab', active ? 'section-tab-active' : ''].join(' ')}
             >
               <Icon size={22} />
-              <span>{item.label}</span>
+              <span>{t.nav[item.id]}</span>
             </motion.button>
           );
         })}
       </div>
       <div className="top-status">
+        <LanguageSwitcher />
         <span className="connection-pill">
           <span className="status-dot" />
-          {activeCount} active
+          {activeCount} {t.app.active}
         </span>
         <span className={['connection-pill', health.status === 'error' ? 'connection-error' : ''].join(' ')}>
-          {error ?? health.label} · {formatTime(lastSyncAt)}
+          {providerLabel(health.status, t)} · {formatTime(lastSyncAt, language, t.app.notSynced)}
         </span>
-        <KioskButton icon={<RefreshCw size={20} />} onClick={() => void sync()} aria-label="Sync">
-          Sync
+        <KioskButton icon={<RefreshCw size={20} />} onClick={() => void sync()} aria-label={t.app.sync}>
+          {t.app.sync}
         </KioskButton>
       </div>
     </header>
@@ -456,6 +498,7 @@ function Header({ view, setView }: { view: View; setView: (view: View) => void }
 export function App() {
   const [view, setView] = useState<View>('overview');
   const sync = useSmartHomeStore((store) => store.sync);
+  const { dir, t } = useI18n();
 
   useEffect(() => {
     void sync();
@@ -479,10 +522,10 @@ export function App() {
     view === 'overview' ? <HomeView setView={setView} /> : view === 'quick' ? <ScenesView /> : <DeviceGrid view={view} />;
 
   return (
-    <div className="min-h-screen overflow-hidden bg-ink text-pearl">
+    <div className="min-h-screen overflow-hidden bg-ink text-pearl" dir={dir}>
       <div className="fixed inset-0 bg-[radial-gradient(circle_at_top_left,rgba(214,181,109,0.14),transparent_28%),radial-gradient(circle_at_80%_20%,rgba(15,106,107,0.42),transparent_34%),linear-gradient(135deg,#061818,#092c2f_48%,#061818)]" />
       <main className="relative z-10 flex h-screen flex-col overflow-hidden p-4">
-        <div className="rotate-hint">For the best experience, rotate the tablet to landscape.</div>
+        <div className="rotate-hint">{t.app.rotateHint}</div>
         <Header view={view} setView={setView} />
         <section className="min-h-0 flex-1 overflow-y-auto pr-1">
           <AnimatePresence mode="wait">
@@ -497,6 +540,7 @@ export function App() {
             </motion.div>
           </AnimatePresence>
         </section>
+        <DevDebugPanel />
         <div className="home-indicator" />
       </main>
     </div>

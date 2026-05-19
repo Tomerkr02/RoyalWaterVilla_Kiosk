@@ -73,6 +73,24 @@ export const devices: Device[] = [
     tuya: { deviceId: 'bf2af07eae210d7a388lkx', commandCode: 'switch_1' }
   },
   {
+    id: 'outdoorWallLight',
+    name: 'Outdoor wall light',
+    subtitle: 'Outside shower wall',
+    area: 'outdoor',
+    kind: 'light',
+    entityId: 'switch.tvrt_mbtyh_vld_qyr_khvts_shower_outside_wall_switch_1',
+    tuya: { deviceId: 'bfe6a09f4ad1838449xayz', commandCode: 'switch_1' }
+  },
+  {
+    id: 'bathroomLight',
+    name: 'Bathroom light',
+    subtitle: 'Shower wall switch',
+    area: 'bathroom',
+    kind: 'light',
+    entityId: 'switch.tvrt_mbtyh_vld_qyr_khvts_shower_outside_wall_switch_2',
+    tuya: { deviceId: 'bfe6a09f4ad1838449xayz', commandCode: 'switch_2' }
+  },
+  {
     id: 'bedroomFanLight',
     name: 'Bedroom fan light',
     subtitle: 'Ceiling fixture',
@@ -149,6 +167,8 @@ export const scenes: Scene[] = [
       backPathwayLight: { isOn: false },
       poolLight: { isOn: false },
       outdoorBarLight: { isOn: false },
+      outdoorWallLight: { isOn: false },
+      bathroomLight: { isOn: false },
       bedroomFanLight: { isOn: false },
       bathroomHeater: { isOn: false }
     }

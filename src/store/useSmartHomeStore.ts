@@ -6,6 +6,11 @@ import type { DeviceId, DeviceState, DeviceStateMap, Scene } from '../types/devi
 
 type CommandStatus = Record<DeviceId, boolean>;
 
+type DebugInfo = {
+  lastHaError?: string;
+  lastEntityAction?: string;
+};
+
 type SmartHomeStore = {
   devices: typeof devices;
   scenes: Scene[];
@@ -15,6 +20,7 @@ type SmartHomeStore = {
   health: ProviderHealth;
   lastSyncAt?: number;
   error?: string;
+  debug: DebugInfo;
   sync: () => Promise<void>;
   setDeviceState: (deviceId: DeviceId, patch: Partial<DeviceState>) => Promise<void>;
   toggleDevice: (deviceId: DeviceId) => Promise<void>;
@@ -44,6 +50,7 @@ export const useSmartHomeStore = create<SmartHomeStore>((set, get) => ({
   pending: {} as CommandStatus,
   provider,
   health: provider.getHealth(),
+  debug: {},
   async sync() {
     try {
       const states = await get().provider.getStates();
@@ -51,18 +58,41 @@ export const useSmartHomeStore = create<SmartHomeStore>((set, get) => ({
         states: mergeStates(store.states, states),
         health: store.provider.getHealth(),
         lastSyncAt: Date.now(),
-        error: undefined
+        error: undefined,
+        debug: {
+          ...store.debug,
+          lastHaError: undefined
+        }
       }));
     } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to sync devices';
       set({
         health: { status: 'error', label: 'Error' },
-        error: error instanceof Error ? error.message : 'Unable to sync devices'
+        error: message,
+        debug: {
+          ...get().debug,
+          lastHaError: message
+        }
       });
     }
   },
   async setDeviceState(deviceId, patch) {
     const previous = get().states[deviceId];
     const optimisticState = { ...previous, ...patch };
+    const device = get().devices.find((item) => item.id === deviceId);
+    const targetState = typeof patch.isOn === 'boolean' ? patch.isOn : optimisticState.isOn;
+    const actionLabel = `${deviceId} -> ${targetState ? 'on' : 'off'} (${device?.entityId ?? 'no entity'})`;
+
+    if (import.meta.env.DEV) {
+      console.info('[SmartHome] optimistic command', {
+        provider: get().provider.name,
+        deviceId,
+        mappedEntityId: device?.entityId,
+        currentState: previous,
+        targetState,
+        patch
+      });
+    }
 
     set((store) => ({
       states: {
@@ -73,11 +103,24 @@ export const useSmartHomeStore = create<SmartHomeStore>((set, get) => ({
         ...store.pending,
         [deviceId]: true
       },
-      error: undefined
+      error: undefined,
+      debug: {
+        ...store.debug,
+        lastEntityAction: actionLabel,
+        lastHaError: undefined
+      }
     }));
 
     try {
       const confirmed = await get().provider.setState(deviceId, patch);
+      if (import.meta.env.DEV) {
+        console.info('[SmartHome] confirmed entity sync', {
+          provider: get().provider.name,
+          deviceId,
+          mappedEntityId: device?.entityId,
+          confirmed
+        });
+      }
       set((store) => ({
         states: {
           ...store.states,
@@ -88,9 +131,24 @@ export const useSmartHomeStore = create<SmartHomeStore>((set, get) => ({
           [deviceId]: false
         },
         lastSyncAt: Date.now(),
-        health: store.provider.getHealth()
+        health: store.provider.getHealth(),
+        debug: {
+          ...store.debug,
+          lastEntityAction: `${actionLabel} confirmed`
+        }
       }));
     } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to control device';
+      if (import.meta.env.DEV) {
+        console.error('[SmartHome] command failed and reverted', {
+          provider: get().provider.name,
+          deviceId,
+          mappedEntityId: device?.entityId,
+          previous,
+          optimisticState,
+          error
+        });
+      }
       set((store) => ({
         states: {
           ...store.states,
@@ -101,7 +159,12 @@ export const useSmartHomeStore = create<SmartHomeStore>((set, get) => ({
           [deviceId]: false
         },
         health: { status: 'error', label: 'Error' },
-        error: error instanceof Error ? error.message : 'Unable to control device'
+        error: message,
+        debug: {
+          ...store.debug,
+          lastEntityAction: `${actionLabel} failed`,
+          lastHaError: message
+        }
       }));
     }
   },

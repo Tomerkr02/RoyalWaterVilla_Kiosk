@@ -19,9 +19,21 @@ export default defineConfig(({ mode }) => {
               rewrite: (path) => path.replace(/^\/ha-api/, ''),
               configure: (proxy) => {
                 proxy.on('proxyReq', (proxyReq) => {
+                  console.info('[Vite HA Proxy] request', {
+                    frontendPath: proxyReq.path,
+                    target: haBaseUrl,
+                    tokenInjected: Boolean(haToken)
+                  });
                   if (haToken) {
                     proxyReq.setHeader('Authorization', `Bearer ${haToken}`);
                   }
+                });
+                proxy.on('proxyRes', (proxyRes, req) => {
+                  console.info('[Vite HA Proxy] response', {
+                    frontendPath: req.url,
+                    target: haBaseUrl,
+                    status: proxyRes.statusCode
+                  });
                 });
               }
             }

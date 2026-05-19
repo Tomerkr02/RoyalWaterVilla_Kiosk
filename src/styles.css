@@ -58,6 +58,18 @@ button {
   @apply flex items-center justify-end gap-2;
 }
 
+.language-switcher {
+  @apply inline-flex rounded-full border border-white/10 bg-white/10 p-1 backdrop-blur-xl;
+}
+
+.language-button {
+  @apply min-h-8 rounded-full px-3 text-xs font-bold text-mist transition;
+}
+
+.language-button-active {
+  @apply bg-gold text-ink;
+}
+
 .hero-panel {
   @apply relative min-h-[calc(100vh-7.25rem)] overflow-hidden rounded-[1.6rem] border border-white/10 shadow-panel;
 }
@@ -92,6 +104,10 @@ button {
 
 .device-card-on {
   @apply border-gold/50 bg-gold/[0.13] shadow-glow;
+}
+
+.device-card-error {
+  @apply border-coral/35;
 }
 
 .status-pill-on,
@@ -204,6 +220,26 @@ button {
 
 .home-indicator {
   @apply pointer-events-none mx-auto mt-2 h-1 w-28 shrink-0 rounded-full bg-white/25;
+}
+
+.debug-panel {
+  @apply fixed bottom-5 end-5 z-20 grid max-w-md gap-1 rounded-2xl border border-white/10 bg-black/55 p-3 text-xs text-mist shadow-panel backdrop-blur-2xl;
+}
+
+.debug-panel strong {
+  @apply text-gold;
+}
+
+[dir='rtl'] .top-bar,
+[dir='rtl'] .section-header,
+[dir='rtl'] .scene-row,
+[dir='rtl'] .metric-card,
+[dir='rtl'] .device-card {
+  text-align: right;
+}
+
+[dir='rtl'] .top-status {
+  @apply justify-start;
 }
 
 @media (orientation: portrait) {

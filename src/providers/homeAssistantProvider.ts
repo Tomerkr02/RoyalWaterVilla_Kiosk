@@ -13,6 +13,7 @@ type HomeAssistantEntity = {
 
 type HomeAssistantConfig = {
   apiBaseUrl: string;
+  configuredBaseUrl: string;
 };
 
 const mappedDevices = devices.filter((device) => device.entityId);
@@ -27,7 +28,8 @@ function envConfig(): HomeAssistantConfig | null {
   }
 
   return {
-    apiBaseUrl: import.meta.env.DEV ? '/ha-api' : haBaseUrl.replace(/\/$/, '')
+    apiBaseUrl: import.meta.env.DEV ? '/ha-api' : haBaseUrl.replace(/\/$/, ''),
+    configuredBaseUrl: haBaseUrl.replace(/\/$/, '')
   };
 }
 
@@ -49,24 +51,34 @@ function toDeviceState(entity: HomeAssistantEntity): DeviceState {
 }
 
 async function request<T>(config: HomeAssistantConfig, path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${config.apiBaseUrl}${path}`, {
+  const requestUrl = `${config.apiBaseUrl}${path}`;
+  const response = await fetch(requestUrl, {
     ...init,
     headers: {
       'Content-Type': 'application/json',
       ...init?.headers
     }
   });
+  const responseBody = await response.text().catch(() => '');
 
-  if (!response.ok) {
-    const detail = await response.text().catch(() => '');
-    throw new Error(`Home Assistant request failed: ${response.status}${detail ? ` ${detail}` : ''}`);
+  if (import.meta.env.DEV) {
+    console.info('[HA] response', {
+      requestUrl,
+      configuredBaseUrl: config.configuredBaseUrl,
+      status: response.status,
+      responseBody: responseBody || '(empty)'
+    });
   }
 
-  if (response.status === 204) {
+  if (!response.ok) {
+    throw new Error(`Home Assistant request failed: ${response.status}${responseBody ? ` ${responseBody}` : ''}`);
+  }
+
+  if (response.status === 204 || !responseBody) {
     return undefined as T;
   }
 
-  return response.json() as Promise<T>;
+  return JSON.parse(responseBody) as T;
 }
 
 function getMappedDevice(deviceId: DeviceId): Device {
@@ -93,14 +105,62 @@ function serviceFor(device: Device, isOn: boolean) {
 
 async function callPowerService(config: HomeAssistantConfig, device: Device, isOn: boolean) {
   const service = serviceFor(device, isOn);
+  if (import.meta.env.DEV) {
+    console.info('[HA] command', {
+      haBaseUrl: config.configuredBaseUrl,
+      mappedEntityId: device.entityId,
+      deviceId: device.id,
+      targetState: isOn,
+      serviceDomain: service.domain,
+      serviceName: service.service,
+      requestUrl: `${config.apiBaseUrl}/api/services/${service.domain}/${service.service}`
+    });
+  }
   await request<unknown>(config, `/api/services/${service.domain}/${service.service}`, {
     method: 'POST',
     body: JSON.stringify({ entity_id: device.entityId })
   });
 }
 
+async function callClimateService(config: HomeAssistantConfig, device: Device, isOn: boolean) {
+  try {
+    await callPowerService(config, device, isOn);
+  } catch (error) {
+    const hvacMode = isOn ? 'heat' : 'off';
+    if (import.meta.env.DEV) {
+      console.warn('[HA] climate turn_on/turn_off failed, falling back to climate.set_hvac_mode', {
+        deviceId: device.id,
+        mappedEntityId: device.entityId,
+        targetState: isOn,
+        hvacMode,
+        error
+      });
+    }
+    await request<unknown>(config, '/api/services/climate/set_hvac_mode', {
+      method: 'POST',
+      body: JSON.stringify({ entity_id: device.entityId, hvac_mode: hvacMode })
+    });
+  }
+}
+
 async function fetchEntityState(config: HomeAssistantConfig, device: Device) {
+  if (import.meta.env.DEV) {
+    console.info('[HA] fetch entity state', {
+      haBaseUrl: config.configuredBaseUrl,
+      mappedEntityId: device.entityId,
+      deviceId: device.id,
+      requestUrl: `${config.apiBaseUrl}/api/states/${device.entityId}`
+    });
+  }
   const entity = await request<HomeAssistantEntity>(config, `/api/states/${device.entityId}`);
+  if (import.meta.env.DEV) {
+    console.info('[HA] mapped current state', {
+      mappedEntityId: device.entityId,
+      deviceId: device.id,
+      currentState: entity.state,
+      attributes: entity.attributes
+    });
+  }
   return toDeviceState(entity);
 }
 
@@ -131,7 +191,11 @@ export function createHomeAssistantProvider(): SmartHomeProvider | null {
       const device = getMappedDevice(deviceId);
 
       if (typeof patch.isOn === 'boolean') {
-        await callPowerService(config, device, patch.isOn);
+        if (domainFor(device.entityId ?? '') === 'climate') {
+          await callClimateService(config, device, patch.isOn);
+        } else {
+          await callPowerService(config, device, patch.isOn);
+        }
       }
 
       if (device.kind === 'fan' && typeof patch.fanSpeed === 'number') {
