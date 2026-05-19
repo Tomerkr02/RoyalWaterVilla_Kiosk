@@ -41,6 +41,32 @@ export type Translation = {
     lastEntityAction: string;
     none: string;
   };
+  dashboard: {
+    welcome: string;
+    heroTitle: string;
+    heroSubtitle: string;
+    areasTitle: string;
+    selectedArea: string;
+    devicesCount: string;
+    connected: string;
+    network: string;
+    systemOk: string;
+    systemNormal: string;
+    help: string;
+    helpSubtitle: string;
+    quickActions: string;
+    quickNight: string;
+    quickDay: string;
+    quickPool: string;
+    quickExit: string;
+    quickAllOff: string;
+    allLightsOn: string;
+    allLightsOnSubtitle: string;
+    allLightsOff: string;
+    allLightsOffSubtitle: string;
+    topNav: Record<'quickActions' | 'lights' | 'temperature' | 'air' | 'cameras' | 'settings', string>;
+    areas: Record<DeviceArea | 'allLights', { label: string }>;
+  };
   nav: Record<'overview' | DeviceArea | 'quick', string>;
   sections: Record<'overview' | DeviceArea | 'quick', { kicker: string; title: string; subtitle: string }>;
   devices: Record<DeviceId, { name: string; subtitle: string }>;
@@ -86,6 +112,46 @@ export const translations: Record<Language, Translation> = {
       lastHaError: 'שגיאת HA אחרונה',
       lastEntityAction: 'פעולת ישות אחרונה',
       none: 'אין'
+    },
+    dashboard: {
+      welcome: 'ברוכים הבאים',
+      heroTitle: 'רויאל ווטר וילה',
+      heroSubtitle: 'שליטה חכמה. חוויה מושלמת.',
+      areasTitle: 'אזורים',
+      selectedArea: 'אזור נבחר',
+      devicesCount: 'מכשירים',
+      connected: 'מחובר',
+      network: 'רשת',
+      systemOk: 'מצב מערכת תקין',
+      systemNormal: 'כל המערכות זמינות',
+      help: 'עזרה',
+      helpSubtitle: 'שירות לאורחים',
+      quickActions: 'פעולות מהירות',
+      quickNight: 'מצב לילה',
+      quickDay: 'מצב יום',
+      quickPool: 'מצב בריכה',
+      quickExit: 'יציאה מהבית',
+      quickAllOff: 'כיבוי כל הבית',
+      allLightsOn: 'כל התאורה דולקת',
+      allLightsOnSubtitle: 'הדלקת כל גופי התאורה הממופים',
+      allLightsOff: 'כל התאורה כבויה',
+      allLightsOffSubtitle: 'כיבוי כל גופי התאורה הממופים',
+      topNav: {
+        quickActions: 'פעולות מהירות',
+        lights: 'תאורה',
+        temperature: 'טמפרטורה',
+        air: 'מאווררים',
+        cameras: 'מצלמות',
+        settings: 'הגדרות'
+      },
+      areas: {
+        salon: { label: 'סלון' },
+        outdoor: { label: 'אזור חוץ' },
+        pool: { label: 'בריכה' },
+        bedroom: { label: 'חדר שינה' },
+        bathroom: { label: 'שירותים ומקלחת' },
+        allLights: { label: 'כל התאורה' }
+      }
     },
     nav: {
       overview: 'סקירה',
@@ -192,6 +258,46 @@ export const translations: Record<Language, Translation> = {
       lastEntityAction: 'Last entity action',
       none: 'None'
     },
+    dashboard: {
+      welcome: 'Welcome',
+      heroTitle: 'Royal Water Villa',
+      heroSubtitle: 'Smart control. Perfect experience.',
+      areasTitle: 'Areas',
+      selectedArea: 'Selected area',
+      devicesCount: 'devices',
+      connected: 'Connected',
+      network: 'Network',
+      systemOk: 'System healthy',
+      systemNormal: 'All systems available',
+      help: 'Help',
+      helpSubtitle: 'Guest service',
+      quickActions: 'Quick actions',
+      quickNight: 'Night mode',
+      quickDay: 'Day mode',
+      quickPool: 'Pool mode',
+      quickExit: 'Leaving villa',
+      quickAllOff: 'All home off',
+      allLightsOn: 'All lights on',
+      allLightsOnSubtitle: 'Turn on every mapped light',
+      allLightsOff: 'All lights off',
+      allLightsOffSubtitle: 'Turn off every mapped light',
+      topNav: {
+        quickActions: 'Quick actions',
+        lights: 'Lighting',
+        temperature: 'Temperature',
+        air: 'Fans',
+        cameras: 'Cameras',
+        settings: 'Settings'
+      },
+      areas: {
+        salon: { label: 'Salon' },
+        outdoor: { label: 'Outdoor' },
+        pool: { label: 'Pool' },
+        bedroom: { label: 'Bedroom' },
+        bathroom: { label: 'Bathroom' },
+        allLights: { label: 'All lighting' }
+      }
+    },
     nav: {
       overview: 'Overview',
       salon: 'Salon',
@@ -296,6 +402,46 @@ export const translations: Record<Language, Translation> = {
       lastHaError: 'Dernière erreur HA',
       lastEntityAction: 'Dernière action entité',
       none: 'Aucune'
+    },
+    dashboard: {
+      welcome: 'Bienvenue',
+      heroTitle: 'Royal Water Villa',
+      heroSubtitle: 'Contrôle intelligent. Expérience parfaite.',
+      areasTitle: 'Zones',
+      selectedArea: 'Zone sélectionnée',
+      devicesCount: 'appareils',
+      connected: 'Connecté',
+      network: 'Réseau',
+      systemOk: 'Système normal',
+      systemNormal: 'Tous les systèmes disponibles',
+      help: 'Aide',
+      helpSubtitle: 'Service invités',
+      quickActions: 'Actions rapides',
+      quickNight: 'Mode nuit',
+      quickDay: 'Mode jour',
+      quickPool: 'Mode piscine',
+      quickExit: 'Départ villa',
+      quickAllOff: 'Tout éteindre',
+      allLightsOn: 'Tout allumer',
+      allLightsOnSubtitle: 'Allumer toutes les lumières configurées',
+      allLightsOff: 'Tout éteindre',
+      allLightsOffSubtitle: 'Éteindre toutes les lumières configurées',
+      topNav: {
+        quickActions: 'Actions rapides',
+        lights: 'Éclairage',
+        temperature: 'Température',
+        air: 'Ventilation',
+        cameras: 'Caméras',
+        settings: 'Réglages'
+      },
+      areas: {
+        salon: { label: 'Salon' },
+        outdoor: { label: 'Extérieur' },
+        pool: { label: 'Piscine' },
+        bedroom: { label: 'Chambre' },
+        bathroom: { label: 'Salle de bain' },
+        allLights: { label: 'Tout éclairage' }
+      }
     },
     nav: {
       overview: 'Accueil',

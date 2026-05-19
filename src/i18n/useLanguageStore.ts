@@ -20,8 +20,14 @@ function getInitialLanguage(): Language {
 export const useLanguageStore = create<LanguageStore>((set) => ({
   language: getInitialLanguage(),
   setLanguage: (language) => {
-    window.localStorage.setItem(storageKey, language);
     set({ language });
+    try {
+      window.localStorage.setItem(storageKey, language);
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.warn('[i18n] Unable to persist language selection', error);
+      }
+    }
   }
 }));
 
