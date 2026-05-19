@@ -16,37 +16,39 @@ type HomeAssistantConfig = {
   configuredBaseUrl: string;
 };
 
+type StatesResponse = {
+  states: HomeAssistantEntity[];
+};
+
+type ToggleResponse = {
+  state: HomeAssistantEntity;
+};
+
 const mappedDevices = devices.filter((device) => device.entityId);
 const deviceById = new Map(mappedDevices.map((device) => [device.id, device]));
 const deviceByEntity = new Map(mappedDevices.map((device) => [device.entityId, device]));
 
 function envConfig(): HomeAssistantConfig | null {
   const localHaBaseUrl = import.meta.env.VITE_HA_BASE_URL as string | undefined;
-  const productionHaEnabled = import.meta.env.VITE_ENABLE_HA === 'true';
-  const productionApiBasePath = (import.meta.env.VITE_HA_API_BASE_PATH as string | undefined) ?? '/api/ha';
+  const haEnabled = import.meta.env.VITE_ENABLE_HA === 'true';
+  const haDisabled = import.meta.env.VITE_ENABLE_HA === 'false';
+  const apiBasePath = (import.meta.env.VITE_HA_API_BASE_PATH as string | undefined) ?? '/api/ha';
 
-  if (import.meta.env.DEV && localHaBaseUrl) {
+  if (import.meta.env.DEV && (localHaBaseUrl || haEnabled)) {
     return {
-      apiBaseUrl: '/ha-api',
-      configuredBaseUrl: localHaBaseUrl.replace(/\/$/, '')
+      apiBaseUrl: apiBasePath.replace(/\/$/, ''),
+      configuredBaseUrl: localHaBaseUrl?.replace(/\/$/, '') ?? apiBasePath.replace(/\/$/, '')
     };
   }
 
-  if (!import.meta.env.DEV && productionHaEnabled) {
+  if (!import.meta.env.DEV && !haDisabled) {
     return {
-      apiBaseUrl: productionApiBasePath.replace(/\/$/, ''),
-      configuredBaseUrl: productionApiBasePath.replace(/\/$/, '')
+      apiBaseUrl: apiBasePath.replace(/\/$/, ''),
+      configuredBaseUrl: apiBasePath.replace(/\/$/, '')
     };
   }
 
-  if (!localHaBaseUrl) {
-    return null;
-  }
-
-  return {
-    apiBaseUrl: localHaBaseUrl.replace(/\/$/, ''),
-    configuredBaseUrl: localHaBaseUrl.replace(/\/$/, '')
-  };
+  return null;
 }
 
 function domainFor(entityId: string) {
@@ -129,34 +131,17 @@ async function callPowerService(config: HomeAssistantConfig, device: Device, isO
       targetState: isOn,
       serviceDomain: service.domain,
       serviceName: service.service,
-      requestUrl: `${config.apiBaseUrl}/api/services/${service.domain}/${service.service}`
+      requestUrl: `${config.apiBaseUrl}/toggle`
     });
   }
-  await request<unknown>(config, `/api/services/${service.domain}/${service.service}`, {
+  await request<ToggleResponse>(config, '/toggle', {
     method: 'POST',
-    body: JSON.stringify({ entity_id: device.entityId })
+    body: JSON.stringify({ entity_id: device.entityId, is_on: isOn })
   });
 }
 
 async function callClimateService(config: HomeAssistantConfig, device: Device, isOn: boolean) {
-  try {
-    await callPowerService(config, device, isOn);
-  } catch (error) {
-    const hvacMode = isOn ? 'heat' : 'off';
-    if (import.meta.env.DEV) {
-      console.warn('[HA] climate turn_on/turn_off failed, falling back to climate.set_hvac_mode', {
-        deviceId: device.id,
-        mappedEntityId: device.entityId,
-        targetState: isOn,
-        hvacMode,
-        error
-      });
-    }
-    await request<unknown>(config, '/api/services/climate/set_hvac_mode', {
-      method: 'POST',
-      body: JSON.stringify({ entity_id: device.entityId, hvac_mode: hvacMode })
-    });
-  }
+  await callPowerService(config, device, isOn);
 }
 
 async function fetchEntityState(config: HomeAssistantConfig, device: Device) {
@@ -165,10 +150,14 @@ async function fetchEntityState(config: HomeAssistantConfig, device: Device) {
       haBaseUrl: config.configuredBaseUrl,
       mappedEntityId: device.entityId,
       deviceId: device.id,
-      requestUrl: `${config.apiBaseUrl}/api/states/${device.entityId}`
+      requestUrl: `${config.apiBaseUrl}/states?entity_id=${device.entityId}`
     });
   }
-  const entity = await request<HomeAssistantEntity>(config, `/api/states/${device.entityId}`);
+  const response = await request<StatesResponse>(config, `/states?entity_id=${encodeURIComponent(device.entityId ?? '')}`);
+  const entity = response.states[0];
+  if (!entity) {
+    throw new Error(`Home Assistant state not found for ${device.entityId}`);
+  }
   if (import.meta.env.DEV) {
     console.info('[HA] mapped current state', {
       mappedEntityId: device.entityId,
@@ -191,12 +180,16 @@ export function createHomeAssistantProvider(): SmartHomeProvider | null {
     name: 'Home Assistant',
     getHealth: () => ({ status: 'connected', label: 'Connected' }),
     async getStates() {
-      const entityStates = await Promise.all(
-        mappedDevices.map(async (device) => {
-          const entity = await request<HomeAssistantEntity>(config, `/api/states/${device.entityId}`);
-          return [device.id, toDeviceState(entity)] as const;
-        })
-      );
+      const entityIds = mappedDevices.map((device) => device.entityId).join(',');
+      const response = await request<StatesResponse>(config, `/states?entity_id=${encodeURIComponent(entityIds)}`);
+      const entityById = new Map(response.states.map((entity) => [entity.entity_id, entity]));
+      const entityStates = mappedDevices.map((device) => {
+        const entity = entityById.get(device.entityId ?? '');
+        if (!entity) {
+          throw new Error(`Home Assistant state not found for ${device.entityId}`);
+        }
+        return [device.id, toDeviceState(entity)] as const;
+      });
 
       return Object.fromEntries(entityStates) as DeviceStateMap;
     },
@@ -219,9 +212,13 @@ export function createHomeAssistantProvider(): SmartHomeProvider | null {
           await callPowerService(config, device, false);
         } else {
           await callPowerService(config, device, true);
-          await request<unknown>(config, '/api/services/fan/set_percentage', {
+          await request<unknown>(config, '/service', {
             method: 'POST',
-            body: JSON.stringify({ entity_id: device.entityId, percentage: patch.fanSpeed * 33 })
+            body: JSON.stringify({
+              domain: 'fan',
+              service: 'set_percentage',
+              data: { entity_id: device.entityId, percentage: patch.fanSpeed * 33 }
+            })
           });
         }
       }

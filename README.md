@@ -37,15 +37,16 @@ http://localhost:5173
 The app supports two providers:
 
 - `Mock Mode`: default when Home Assistant is not configured.
-- `Connected`: enabled when `VITE_HA_BASE_URL` is configured.
+- `Connected`: enabled when `VITE_ENABLE_HA=true` is configured.
 
-Frontend code must not contain a Home Assistant token. For local development, Vite proxies `/ha-api` to Home Assistant and injects the token server-side.
+Frontend code never receives the Home Assistant token. The browser calls internal app endpoints under `/api/ha/*`; the local Vite middleware or Vercel API route reads `HA_BASE_URL` and `HA_TOKEN` server-side.
 
 1. Create a local `.env` file:
 
 ```bash
-VITE_HA_BASE_URL=http://homeassistant.local:8123
+HA_BASE_URL=http://homeassistant.local:8123
 HA_TOKEN=your_home_assistant_long_lived_access_token
+VITE_ENABLE_HA=true
 ```
 
 2. Create a Home Assistant long-lived access token:
@@ -65,17 +66,18 @@ npm run dev
 During development, the browser calls:
 
 ```text
-/ha-api/api/states/<entity_id>
-/ha-api/api/services/<domain>/<service>
+GET /api/ha/states?entity_id=<entity_id>
+POST /api/ha/toggle
+POST /api/ha/service
 ```
 
-Vite forwards those requests to `VITE_HA_BASE_URL` and adds:
+Vite forwards those requests to `HA_BASE_URL` and adds:
 
 ```text
 Authorization: Bearer <HA_TOKEN>
 ```
 
-Do not prefix `HA_TOKEN` with `VITE_`. `VITE_*` values are exposed to the browser; `HA_TOKEN` is read only by the Vite dev server.
+Do not prefix `HA_TOKEN` with `VITE_`. `VITE_*` values are exposed to the browser; `HA_TOKEN` is read only by the Vite dev server or Vercel function.
 
 Development logs are printed for:
 
@@ -96,8 +98,9 @@ A small development-only debug panel shows provider status, last HA error, and l
 1. Confirm `.env` contains:
 
 ```bash
-VITE_HA_BASE_URL=http://homeassistant.local:8123
+HA_BASE_URL=http://homeassistant.local:8123
 HA_TOKEN=your_home_assistant_long_lived_access_token
+VITE_ENABLE_HA=true
 ```
 
 2. Restart the Vite server after changing `.env`.
@@ -105,13 +108,13 @@ HA_TOKEN=your_home_assistant_long_lived_access_token
 4. In the Network tab, confirm the browser calls:
 
 ```text
-POST /ha-api/api/services/switch/turn_on
-GET /ha-api/api/states/switch.tvrt_slvn_salon_light_switch_1
+POST /api/ha/toggle
+GET /api/ha/states?entity_id=switch.tvrt_slvn_salon_light_switch_1
 ```
 
-5. In the console, confirm `[SmartHome] selected provider` shows `Home Assistant`, not `Mock`, and `[Vite HA Proxy] request` shows `tokenInjected: true`.
+5. In the console, confirm `[SmartHome] selected provider` shows `Home Assistant`, not `Mock`.
 
-If the provider is `Mock`, `VITE_HA_BASE_URL` was not loaded by Vite or the dev server was not restarted. If the service call returns `401`, the token is missing or invalid. If it returns a network/DNS error, the kiosk machine cannot reach `homeassistant.local:8123` from the current network.
+If the provider is `Mock`, `VITE_ENABLE_HA=true` was not loaded by Vite or the dev server was not restarted. If the API returns `500` with missing env details, `HA_BASE_URL` or `HA_TOKEN` is missing. If it returns `401`, the token is invalid. If it returns `502`, the server cannot reach Home Assistant.
 
 ## Production Home Assistant Setup
 
@@ -128,22 +131,22 @@ Set these Vercel environment variables:
 ```bash
 HA_BASE_URL=https://your-home-assistant.example.com
 HA_TOKEN=your_home_assistant_long_lived_access_token
-VITE_ENABLE_HA=true
-VITE_HA_API_BASE_PATH=/api/ha
 ```
 
-Do not set `VITE_HA_TOKEN`. Any `VITE_*` value is bundled into frontend code.
+Do not set `VITE_HA_TOKEN`. Any `VITE_*` value is bundled into frontend code. Production uses the secure `/api/ha` route by default. To intentionally force Mock Mode in a production build, set `VITE_ENABLE_HA=false`.
 
-Important: a public Vercel deployment usually cannot reach a Home Assistant instance that only exists on the villa's private local network. Production control requires a secure reachable Home Assistant URL, VPN/tunnel, reverse proxy, or another private server-side bridge. Without that, the Vercel UI can load, but device control will fail through `/api/ha/*`.
+Important: Vercel cannot reach `homeassistant.local` inside the villa network. `HA_BASE_URL` must be a secure public URL that reaches Home Assistant, for example through Nabu Casa Remote UI or a Cloudflare Tunnel. Do not implement the tunnel in this app; configure it outside the app and put that reachable URL in `HA_BASE_URL`.
 
-The Vercel proxy forwards these paths to Home Assistant:
+The browser calls these internal routes:
 
 ```text
-/api/states/<entity_id>
-/api/services/<domain>/<service>
+GET /api/ha/states
+GET /api/ha/states?entity_id=<entity_id>
+POST /api/ha/toggle
+POST /api/ha/service
 ```
 
-The proxy, not the frontend, adds:
+The server route, not the frontend, calls Home Assistant and adds:
 
 ```text
 Authorization: Bearer <HA_TOKEN>
@@ -154,7 +157,7 @@ Authorization: Bearer <HA_TOKEN>
 The repository includes:
 
 - `vercel.json` for Vite output, SPA refresh/deep route rewrites, and cache headers.
-- `api/ha/[...path].js` for production-safe Home Assistant proxying.
+- `api/ha/states.js`, `api/ha/toggle.js`, and `api/ha/service.js` for production-safe Home Assistant access.
 
 Deploy steps:
 
@@ -180,21 +183,7 @@ vercel login
 vercel
 vercel env add HA_BASE_URL production
 vercel env add HA_TOKEN production
-vercel env add VITE_ENABLE_HA production
-vercel env add VITE_HA_API_BASE_PATH production
 vercel --prod
-```
-
-For `VITE_ENABLE_HA`, use:
-
-```text
-true
-```
-
-For `VITE_HA_API_BASE_PATH`, use:
-
-```text
-/api/ha
 ```
 
 ## Mapped Devices

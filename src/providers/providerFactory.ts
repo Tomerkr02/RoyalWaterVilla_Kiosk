@@ -9,8 +9,8 @@ export function createProvider(): SmartHomeProvider {
       provider: provider.name,
       status: provider.getHealth().status,
       haBaseUrl: import.meta.env.VITE_HA_BASE_URL ?? '(not configured)',
-      browserApiBase: import.meta.env.VITE_HA_BASE_URL ? '/ha-api' : '(mock provider)',
-      tokenHandling: 'HA_TOKEN is injected only by the dev/proxy server; it is not available to frontend code.'
+      browserApiBase: provider.name === 'Home Assistant' ? '/api/ha' : '(mock provider)',
+      tokenHandling: 'HA_TOKEN is read only by the server-side API/proxy; it is not available to frontend code.'
     });
   }
   return provider;
