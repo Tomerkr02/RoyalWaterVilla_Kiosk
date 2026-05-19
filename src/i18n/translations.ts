@@ -68,6 +68,19 @@ export type Translation = {
     topNav: Record<'quickActions' | 'lights' | 'temperature' | 'air' | 'cameras' | 'settings', string>;
     areas: Record<DeviceArea | 'allDevices', { label: string }>;
   };
+  shabbat: {
+    title: string;
+    active: string;
+    inactive: string;
+    turnOn: string;
+    turnOff: string;
+    cardSubtitle: string;
+    screenSubtitle: string;
+    mainToggle: string;
+    schedulesMuted: string;
+    schedulesReady: string;
+    timePlaceholder: string;
+  };
   nav: Record<'overview' | DeviceArea | 'quick', string>;
   sections: Record<'overview' | DeviceArea | 'quick', { kicker: string; title: string; subtitle: string }>;
   devices: Record<DeviceId, { name: string; subtitle: string }>;
@@ -154,6 +167,19 @@ export const translations: Record<Language, Translation> = {
         bathroom: { label: 'שירותים ומקלחת' },
         allDevices: { label: 'כל ההתקנים' }
       }
+    },
+    shabbat: {
+      title: 'מצב שבת',
+      active: 'פעיל לשבת',
+      inactive: 'לא פעיל',
+      turnOn: 'הדלקה',
+      turnOff: 'כיבוי',
+      cardSubtitle: 'תזמון רגוע למכשירי הווילה',
+      screenSubtitle: 'בחרו זמני הדלקה וכיבוי לכל מכשיר. הפעולות נשמרות בטאבלט ולא נשלחות עדיין ל-Home Assistant.',
+      mainToggle: 'הפעלת מצב שבת',
+      schedulesMuted: 'הזמנים שמורים אך כבויים עד להפעלה',
+      schedulesReady: 'אפשר לערוך את זמני השבת',
+      timePlaceholder: 'בחרו שעה'
     },
     nav: {
       overview: 'סקירה',
@@ -301,6 +327,19 @@ export const translations: Record<Language, Translation> = {
         allDevices: { label: 'All devices' }
       }
     },
+    shabbat: {
+      title: 'Shabbat Mode',
+      active: 'Active for Shabbat',
+      inactive: 'Inactive',
+      turnOn: 'Turn on',
+      turnOff: 'Turn off',
+      cardSubtitle: 'Calm scheduling for villa devices',
+      screenSubtitle: 'Choose on and off times for each device. Schedules are saved on this tablet and do not run Home Assistant yet.',
+      mainToggle: 'Enable Shabbat Mode',
+      schedulesMuted: 'Times are saved but disabled until active',
+      schedulesReady: 'Shabbat times can be edited',
+      timePlaceholder: 'Select time'
+    },
     nav: {
       overview: 'Overview',
       salon: 'Salon',
@@ -446,6 +485,19 @@ export const translations: Record<Language, Translation> = {
         bathroom: { label: 'Salle de bain' },
         allDevices: { label: 'Tous les appareils' }
       }
+    },
+    shabbat: {
+      title: 'Mode Chabbat',
+      active: 'Actif pour Chabbat',
+      inactive: 'Inactif',
+      turnOn: 'Allumer',
+      turnOff: 'Éteindre',
+      cardSubtitle: 'Programmation sereine des appareils',
+      screenSubtitle: 'Choisissez les heures d’allumage et d’extinction pour chaque appareil. Les horaires sont enregistrés sur la tablette et ne lancent pas encore Home Assistant.',
+      mainToggle: 'Activer le Mode Chabbat',
+      schedulesMuted: 'Les horaires sont enregistrés mais désactivés',
+      schedulesReady: 'Les horaires de Chabbat peuvent être modifiés',
+      timePlaceholder: 'Choisir une heure'
     },
     nav: {
       overview: 'Accueil',

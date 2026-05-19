@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import {
   Bath,
   BedDouble,
+  CalendarClock,
   Clock3,
   Fan,
   Gauge,
@@ -25,7 +26,7 @@ import { useSmartHomeStore } from './store/useSmartHomeStore';
 import type { Device, DeviceArea, DeviceId } from './types/devices';
 
 type AreaView = DeviceArea | 'allDevices';
-type View = 'home' | AreaView;
+type View = 'home' | 'shabbat' | AreaView;
 
 const areaTabs: Array<{ id: AreaView; icon: typeof Home; deviceIds: DeviceId[] }> = [
   { id: 'salon', icon: Sofa, deviceIds: ['salonCeilingSpots', 'salonLedWall'] },
@@ -302,6 +303,40 @@ function Hero() {
   );
 }
 
+function ShabbatHomeCard({ onOpen }: { onOpen: () => void }) {
+  const { t } = useI18n();
+  const active = useSmartHomeStore((store) => store.shabbatMode.active);
+
+  return (
+    <motion.button
+      type="button"
+      whileTap={{ scale: 0.985 }}
+      className={['rwv-shabbat-home-card', active ? 'rwv-shabbat-active' : ''].join(' ')}
+      onClick={onOpen}
+    >
+      <div className="rwv-shabbat-home-icon">
+        <CalendarClock size={30} />
+      </div>
+      <div>
+        <span>{t.shabbat.cardSubtitle}</span>
+        <strong>{t.shabbat.title}</strong>
+      </div>
+      <div className={['rwv-shabbat-state-pill', active ? 'active' : ''].join(' ')}>
+        {active ? t.shabbat.active : t.shabbat.inactive}
+      </div>
+    </motion.button>
+  );
+}
+
+function HomeScreen({ openShabbat }: { openShabbat: () => void }) {
+  return (
+    <>
+      <Hero />
+      <ShabbatHomeCard onOpen={openShabbat} />
+    </>
+  );
+}
+
 function AllLightsActions() {
   const { t } = useI18n();
   const setDeviceState = useSmartHomeStore((store) => store.setDeviceState);
@@ -320,6 +355,76 @@ function AllLightsActions() {
         <strong>{t.dashboard.allLightsOff}</strong>
       </motion.button>
     </div>
+  );
+}
+
+function ShabbatModePanel() {
+  const { t } = useI18n();
+  const devices = useSmartHomeStore((store) => store.devices);
+  const states = useSmartHomeStore((store) => store.states);
+  const shabbatMode = useSmartHomeStore((store) => store.shabbatMode);
+  const setShabbatModeActive = useSmartHomeStore((store) => store.setShabbatModeActive);
+  const setShabbatScheduleTime = useSmartHomeStore((store) => store.setShabbatScheduleTime);
+
+  return (
+    <section className="rwv-shabbat-screen" aria-live="polite">
+      <div className="rwv-shabbat-header">
+        <div>
+          <span>{t.shabbat.active}</span>
+          <h2>{t.shabbat.title}</h2>
+          <p>{t.shabbat.screenSubtitle}</p>
+        </div>
+        <button
+          type="button"
+          className={['rwv-shabbat-main-toggle', shabbatMode.active ? 'active' : ''].join(' ')}
+          onClick={() => setShabbatModeActive(!shabbatMode.active)}
+          aria-pressed={shabbatMode.active}
+        >
+          <span>{t.shabbat.mainToggle}</span>
+          <strong>{shabbatMode.active ? t.shabbat.active : t.shabbat.inactive}</strong>
+          <span className={['rwv-toggle', shabbatMode.active ? 'rwv-toggle-on' : ''].join(' ')} aria-hidden="true">
+            <span className="rwv-toggle-thumb" />
+          </span>
+        </button>
+      </div>
+
+      <div className={['rwv-shabbat-note', shabbatMode.active ? 'active' : ''].join(' ')}>
+        {shabbatMode.active ? t.shabbat.schedulesReady : t.shabbat.schedulesMuted}
+      </div>
+
+      <div className="rwv-shabbat-device-grid">
+        {devices.map((device) => {
+          const deviceSchedule = shabbatMode.devices[device.id].schedule;
+          const deviceState = states[device.id];
+          return (
+            <article key={device.id} className={['rwv-shabbat-device-card', !shabbatMode.active ? 'muted' : ''].join(' ')}>
+              <div className="rwv-shabbat-device-head">
+                <div>
+                  <span>{t.dashboard.areas[device.area].label}</span>
+                  <h3>{t.devices[device.id].name}</h3>
+                </div>
+                <div className={deviceState.isOn ? 'rwv-status-on' : 'rwv-status-off'}>{deviceState.isOn ? t.app.on : t.app.off}</div>
+              </div>
+              <div className="rwv-shabbat-schedule-grid">
+                {deviceSchedule.map((item) => (
+                  <label key={item.id} className="rwv-shabbat-time-control">
+                    <span>{item.type === 'on' ? t.shabbat.turnOn : t.shabbat.turnOff}</span>
+                    <input
+                      type="time"
+                      value={item.time}
+                      disabled={!shabbatMode.active}
+                      aria-label={`${t.devices[device.id].name} ${item.type === 'on' ? t.shabbat.turnOn : t.shabbat.turnOff}`}
+                      placeholder={t.shabbat.timePlaceholder}
+                      onChange={(event) => setShabbatScheduleTime(device.id, item.id, event.target.value)}
+                    />
+                  </label>
+                ))}
+              </div>
+            </article>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 
@@ -417,7 +522,13 @@ export function App() {
     <div className="rwv-shell" dir={dir}>
       <TopBar selectedView={selectedView} setSelectedView={setSelectedView} />
       <main className={['rwv-dashboard', selectedView === 'home' ? 'rwv-dashboard-home' : 'rwv-dashboard-area'].join(' ')}>
-        {selectedView === 'home' ? <Hero /> : <AreaDevicePanel selectedView={selectedView} />}
+        {selectedView === 'home' ? (
+          <HomeScreen openShabbat={() => setSelectedView('shabbat')} />
+        ) : selectedView === 'shabbat' ? (
+          <ShabbatModePanel />
+        ) : (
+          <AreaDevicePanel selectedView={selectedView} />
+        )}
       </main>
       <BottomStatusCards />
       <DevDebugPanel />

@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import { devices, initialDeviceStates, scenes } from '../config/devices';
 import { createProvider } from '../providers/providerFactory';
 import type { ProviderHealth, SmartHomeProvider } from '../providers/SmartHomeProvider';
@@ -11,6 +12,22 @@ type DebugInfo = {
   lastEntityAction?: string;
 };
 
+export type ShabbatScheduleItem = {
+  id: string;
+  type: 'on' | 'off';
+  label: string;
+  time: string;
+};
+
+type ShabbatDeviceSchedule = {
+  schedule: ShabbatScheduleItem[];
+};
+
+type ShabbatModeState = {
+  active: boolean;
+  devices: Record<DeviceId, ShabbatDeviceSchedule>;
+};
+
 type SmartHomeStore = {
   devices: typeof devices;
   scenes: Scene[];
@@ -21,16 +38,54 @@ type SmartHomeStore = {
   lastSyncAt?: number;
   error?: string;
   debug: DebugInfo;
+  shabbatMode: ShabbatModeState;
   sync: () => Promise<void>;
   setDeviceState: (deviceId: DeviceId, patch: Partial<DeviceState>) => Promise<void>;
   toggleDevice: (deviceId: DeviceId) => Promise<void>;
   setFanSpeed: (deviceId: DeviceId, fanSpeed: 0 | 1 | 2 | 3) => Promise<void>;
   applyScene: (sceneId: string) => Promise<void>;
   allOff: () => Promise<void>;
+  setShabbatModeActive: (active: boolean) => void;
+  setShabbatScheduleTime: (deviceId: DeviceId, scheduleId: string, time: string) => void;
 };
 
 const provider = createProvider();
 const targetedSyncDelays = [300, 900, 1800] as const;
+const defaultShabbatLabels = ['הדלקה', 'כיבוי', 'הדלקה', 'כיבוי'] as const;
+
+function createDefaultShabbatMode(): ShabbatModeState {
+  return {
+    active: false,
+    devices: Object.fromEntries(
+      devices.map((device) => [
+        device.id,
+        {
+          schedule: defaultShabbatLabels.map((label, index) => ({
+            id: `${device.id}-shabbat-${index + 1}`,
+            type: index % 2 === 0 ? 'on' : 'off',
+            label,
+            time: ''
+          }))
+        }
+      ])
+    ) as Record<DeviceId, ShabbatDeviceSchedule>
+  };
+}
+
+function mergeShabbatMode(persisted?: Partial<ShabbatModeState>): ShabbatModeState {
+  const defaults = createDefaultShabbatMode();
+  return {
+    active: persisted?.active ?? defaults.active,
+    devices: Object.fromEntries(
+      devices.map((device) => [
+        device.id,
+        {
+          schedule: persisted?.devices?.[device.id]?.schedule ?? defaults.devices[device.id].schedule
+        }
+      ])
+    ) as Record<DeviceId, ShabbatDeviceSchedule>
+  };
+}
 
 function mergeStates(current: DeviceStateMap, incoming: Partial<DeviceStateMap>) {
   return Object.keys(current).reduce((next, key) => {
@@ -44,7 +99,9 @@ function mergeStates(current: DeviceStateMap, incoming: Partial<DeviceStateMap>)
   }, {} as DeviceStateMap);
 }
 
-export const useSmartHomeStore = create<SmartHomeStore>((set, get) => ({
+export const useSmartHomeStore = create<SmartHomeStore>()(
+  persist(
+    (set, get) => ({
   devices,
   scenes,
   states: initialDeviceStates,
@@ -52,6 +109,7 @@ export const useSmartHomeStore = create<SmartHomeStore>((set, get) => ({
   provider,
   health: provider.getHealth(),
   debug: {},
+  shabbatMode: createDefaultShabbatMode(),
   async sync() {
     try {
       const states = await get().provider.getStates();
@@ -265,5 +323,43 @@ export const useSmartHomeStore = create<SmartHomeStore>((set, get) => ({
         })
       )
     );
+  },
+  setShabbatModeActive(active) {
+    set((store) => ({
+      shabbatMode: {
+        ...store.shabbatMode,
+        active
+      }
+    }));
+    // TODO: connect the future Shabbat execution runner to Home Assistant here.
+  },
+  setShabbatScheduleTime(deviceId, scheduleId, time) {
+    set((store) => ({
+      shabbatMode: {
+        ...store.shabbatMode,
+        devices: {
+          ...store.shabbatMode.devices,
+          [deviceId]: {
+            schedule: store.shabbatMode.devices[deviceId].schedule.map((item) =>
+              item.id === scheduleId ? { ...item, time } : item
+            )
+          }
+        }
+      }
+    }));
+    // TODO: the future scheduler should read this persisted time and dispatch HA services.
   }
-}));
+}),
+    {
+      name: 'royal-water-villa-shabbat-mode',
+      partialize: (state) => ({ shabbatMode: state.shabbatMode }),
+      merge: (persisted, current) => {
+        const persistedState = persisted as Partial<SmartHomeStore> | undefined;
+        return {
+          ...current,
+          shabbatMode: mergeShabbatMode(persistedState?.shabbatMode)
+        };
+      }
+    }
+  )
+);
