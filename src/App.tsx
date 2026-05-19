@@ -6,34 +6,21 @@ import {
   Check,
   CirclePower,
   Clock3,
-  Droplets,
   Fan,
   Gauge,
-  Grid2X2,
-  HelpCircle,
   Home,
   Lamp,
-  Lightbulb,
   Moon,
-  PartyPopper,
   Power,
-  RefreshCw,
-  Settings,
   ShieldCheck,
   Sofa,
-  Sparkles,
   Sun,
-  Thermometer,
   ThermometerSun,
   Trees,
-  Umbrella,
   Waves,
   Wifi
 } from 'lucide-react';
-import bedroomImage from './assets/images/royal-water-villa-bedroom-lighting-design-18.png';
 import blueWaterNightImage from './assets/images/royal-water-villa-blue-water-night-view-25.png';
-import outdoorImage from './assets/images/royal-water-villa-outdoor-lounge-night-08.png';
-import poolImage from './assets/images/royal-water-villa-pool-fruit-tray-20.png';
 import { useI18n, useLanguageStore } from './i18n/useLanguageStore';
 import type { Language, Translation } from './i18n/translations';
 import { useSmartHomeStore } from './store/useSmartHomeStore';
@@ -41,26 +28,15 @@ import type { Device, DeviceArea, DeviceId } from './types/devices';
 
 type View = DeviceArea | 'allLights';
 
-const areaCards: Array<{
-  id: View;
-  icon: typeof Home;
-  image: string;
-  deviceIds: DeviceId[];
-}> = [
-  { id: 'salon', icon: Sofa, image: bedroomImage, deviceIds: ['salonCeilingSpots', 'salonLedWall'] },
-  {
-    id: 'outdoor',
-    icon: Umbrella,
-    image: outdoorImage,
-    deviceIds: ['pergolaLight', 'wallLight', 'backPathwayLight', 'outdoorWallLight']
-  },
-  { id: 'pool', icon: Waves, image: blueWaterNightImage, deviceIds: ['poolLight', 'outdoorBarLight'] },
-  { id: 'bedroom', icon: BedDouble, image: bedroomImage, deviceIds: ['bedroomFanLight', 'ceilingFan'] },
-  { id: 'bathroom', icon: Bath, image: outdoorImage, deviceIds: ['bathroomLight', 'bathroomHeater'] },
+const areaTabs: Array<{ id: View; icon: typeof Home; deviceIds: DeviceId[] }> = [
+  { id: 'salon', icon: Sofa, deviceIds: ['salonCeilingSpots', 'salonLedWall'] },
+  { id: 'outdoor', icon: Trees, deviceIds: ['pergolaLight', 'wallLight', 'backPathwayLight', 'outdoorWallLight'] },
+  { id: 'pool', icon: Waves, deviceIds: ['poolLight', 'outdoorBarLight'] },
+  { id: 'bedroom', icon: BedDouble, deviceIds: ['bedroomFanLight', 'ceilingFan'] },
+  { id: 'bathroom', icon: Bath, deviceIds: ['bathroomLight', 'bathroomHeater'] },
   {
     id: 'allLights',
     icon: Lamp,
-    image: poolImage,
     deviceIds: [
       'salonCeilingSpots',
       'salonLedWall',
@@ -76,15 +52,6 @@ const areaCards: Array<{
   }
 ];
 
-const topNav = [
-  { labelKey: 'quickActions', icon: Sparkles },
-  { labelKey: 'lights', icon: Lightbulb },
-  { labelKey: 'temperature', icon: Thermometer },
-  { labelKey: 'air', icon: Fan },
-  { labelKey: 'cameras', icon: PartyPopper },
-  { labelKey: 'settings', icon: Settings }
-] as const;
-
 const areaIcons: Record<DeviceArea, typeof Home> = {
   salon: Sofa,
   outdoor: Trees,
@@ -93,35 +60,12 @@ const areaIcons: Record<DeviceArea, typeof Home> = {
   bathroom: ThermometerSun
 };
 
-const lightDeviceIds: DeviceId[] = [
-  'salonCeilingSpots',
-  'salonLedWall',
-  'pergolaLight',
-  'wallLight',
-  'backPathwayLight',
-  'outdoorWallLight',
-  'poolLight',
-  'outdoorBarLight',
-  'bathroomLight',
-  'bedroomFanLight'
-];
+const lightDeviceIds = areaTabs.find((tab) => tab.id === 'allLights')?.deviceIds ?? [];
 
 function providerLabel(status: string, t: Translation) {
-  if (status === 'mock') {
-    return t.app.mockMode;
-  }
-  if (status === 'connected') {
-    return t.app.connected;
-  }
+  if (status === 'mock') return t.app.mockMode;
+  if (status === 'connected') return t.app.connected;
   return t.app.error;
-}
-
-function formatTime(timestamp: number | undefined, language: Language, fallback: string) {
-  if (!timestamp) {
-    return fallback;
-  }
-  const locale = language === 'he' ? 'he-IL' : language === 'fr' ? 'fr-FR' : 'en-US';
-  return new Intl.DateTimeFormat(locale, { hour: '2-digit', minute: '2-digit' }).format(timestamp);
 }
 
 function useClock(language: Language) {
@@ -132,10 +76,17 @@ function useClock(language: Language) {
     return () => window.clearInterval(id);
   }, []);
 
-  return new Intl.DateTimeFormat(language === 'he' ? 'he-IL' : language === 'fr' ? 'fr-FR' : 'en-US', {
-    hour: '2-digit',
-    minute: '2-digit'
-  }).format(now);
+  const locale = language === 'he' ? 'he-IL' : language === 'fr' ? 'fr-FR' : 'en-US';
+  return {
+    time: new Intl.DateTimeFormat(locale, { hour: '2-digit', minute: '2-digit' }).format(now),
+    date: new Intl.DateTimeFormat(locale, { weekday: 'short', day: 'numeric', month: 'short' }).format(now)
+  };
+}
+
+function formatTime(timestamp: number | undefined, language: Language, fallback: string) {
+  if (!timestamp) return fallback;
+  const locale = language === 'he' ? 'he-IL' : language === 'fr' ? 'fr-FR' : 'en-US';
+  return new Intl.DateTimeFormat(locale, { hour: '2-digit', minute: '2-digit' }).format(timestamp);
 }
 
 function LanguageSwitcher() {
@@ -150,7 +101,6 @@ function LanguageSwitcher() {
           key={item}
           type="button"
           className={['rwv-language-button', language === item ? 'rwv-language-active' : ''].join(' ')}
-          onPointerUp={() => setLanguage(item)}
           onClick={() => setLanguage(item)}
         >
           {item === 'he' ? '🇮🇱' : item === 'en' ? '🇺🇸' : '🇫🇷'}
@@ -173,86 +123,48 @@ function LogoMark() {
   );
 }
 
-function TopBar() {
-  const { language, t } = useI18n();
+function AreaTabs({ selectedView, setSelectedView }: { selectedView: View; setSelectedView: (view: View) => void }) {
+  const { t } = useI18n();
+
+  return (
+    <nav className="rwv-area-tabs" aria-label="Area navigation">
+      {areaTabs.map((item) => {
+        const Icon = item.icon;
+        const active = item.id === selectedView;
+        return (
+          <motion.button
+            key={item.id}
+            type="button"
+            whileTap={{ scale: 0.96 }}
+            className={['rwv-area-tab', active ? 'rwv-area-tab-active' : ''].join(' ')}
+            onClick={() => setSelectedView(item.id)}
+          >
+            <Icon size={21} />
+            <span>{t.dashboard.areas[item.id].label}</span>
+          </motion.button>
+        );
+      })}
+    </nav>
+  );
+}
+
+function TopBar({ selectedView, setSelectedView }: { selectedView: View; setSelectedView: (view: View) => void }) {
+  const { language } = useI18n();
   const clock = useClock(language);
 
   return (
     <header className="rwv-topbar">
       <LanguageSwitcher />
+      <AreaTabs selectedView={selectedView} setSelectedView={setSelectedView} />
       <div className="rwv-clock">
-        <Clock3 size={26} />
+        <Clock3 size={18} />
         <div>
-          <strong>{clock}</strong>
-          <span>{language === 'he' ? 'יום שישי, 16 במאי' : language === 'fr' ? 'Vendredi 16 mai' : 'Friday, May 16'}</span>
+          <strong>{clock.time}</strong>
+          <span>{clock.date}</span>
         </div>
       </div>
-      <nav className="rwv-topnav" aria-label="Smart home navigation">
-        {topNav.map((item) => {
-          const Icon = item.icon;
-          return (
-            <button key={item.labelKey} type="button" className="rwv-topnav-item">
-              <Icon size={27} />
-              <span>{t.dashboard.topNav[item.labelKey]}</span>
-            </button>
-          );
-        })}
-      </nav>
       <LogoMark />
     </header>
-  );
-}
-
-function AreaCard({
-  card,
-  active,
-  onClick
-}: {
-  card: (typeof areaCards)[number];
-  active: boolean;
-  onClick: () => void;
-}) {
-  const { t } = useI18n();
-  const Icon = card.icon;
-
-  return (
-    <motion.button
-      type="button"
-      whileTap={{ scale: 0.98 }}
-      className={['rwv-area-card', active ? 'rwv-area-card-active' : ''].join(' ')}
-      onClick={onClick}
-    >
-      <Icon className="rwv-area-icon" size={38} />
-      <img src={card.image} alt="" />
-      <span className="rwv-area-copy">
-        <strong>{t.dashboard.areas[card.id].label}</strong>
-        <small>
-          {card.id === 'allLights'
-            ? `${lightDeviceIds.length} ${t.dashboard.devicesCount}`
-            : `${card.deviceIds.length} ${t.dashboard.devicesCount}`}
-        </small>
-      </span>
-      <span className="rwv-area-arrow">›</span>
-    </motion.button>
-  );
-}
-
-function AreaSidebar({ selectedView, setSelectedView }: { selectedView: View; setSelectedView: (view: View) => void }) {
-  const { t } = useI18n();
-  return (
-    <aside className="rwv-sidebar">
-      <div className="rwv-sidebar-title">
-        <span />
-        <strong>{t.dashboard.areasTitle}</strong>
-        <Grid2X2 size={24} />
-        <span />
-      </div>
-      <div className="rwv-area-list">
-        {areaCards.map((card) => (
-          <AreaCard key={card.id} card={card} active={selectedView === card.id} onClick={() => setSelectedView(card.id)} />
-        ))}
-      </div>
-    </aside>
   );
 }
 
@@ -273,11 +185,7 @@ function Toggle({ isOn, pending, onClick, label }: { isOn: boolean; pending?: bo
       }}
       className={['rwv-toggle', isOn ? 'rwv-toggle-on' : '', pending ? 'animate-pulse' : ''].join(' ')}
     >
-      <motion.span
-        layout
-        transition={{ type: 'spring', stiffness: 520, damping: 34 }}
-        className={isOn ? activePosition : inactivePosition}
-      >
+      <motion.span layout transition={{ type: 'spring', stiffness: 520, damping: 34 }} className={isOn ? activePosition : inactivePosition}>
         {isOn ? <Check size={16} /> : <CirclePower size={16} />}
       </motion.span>
     </motion.button>
@@ -297,16 +205,15 @@ function DeviceCard({ device }: { device: Device }) {
   return (
     <motion.article
       layout
-      initial={{ opacity: 0, y: 18, scale: 0.98 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
+      initial={{ opacity: 0, y: 14 }}
+      animate={{ opacity: 1, y: 0 }}
       whileTap={{ scale: 0.985 }}
-      transition={{ type: 'spring', stiffness: 350, damping: 30 }}
       className={['rwv-device-card', state.isOn ? 'rwv-device-on' : '', error ? 'rwv-device-error' : ''].join(' ')}
       onClick={() => void toggleDevice(device.id)}
     >
       <div className="rwv-device-top">
         <div className="rwv-device-icon">
-          <Icon size={27} />
+          <Icon size={24} />
         </div>
         <Toggle
           isOn={state.isOn}
@@ -342,101 +249,31 @@ function DeviceCard({ device }: { device: Device }) {
   );
 }
 
-function AllLightsPanel() {
-  const { t } = useI18n();
-  const setDeviceState = useSmartHomeStore((store) => store.setDeviceState);
-
-  const setAllLights = (isOn: boolean) => {
-    void Promise.all(lightDeviceIds.map((deviceId) => setDeviceState(deviceId, { isOn })));
-  };
-
-  return (
-    <motion.div className="rwv-device-grid rwv-all-lights" initial="hidden" animate="visible">
-      <motion.button type="button" whileTap={{ scale: 0.98 }} className="rwv-scene-action rwv-all-on" onClick={() => setAllLights(true)}>
-        <Sun size={42} />
-        <strong>{t.dashboard.allLightsOn}</strong>
-        <span>{t.dashboard.allLightsOnSubtitle}</span>
-      </motion.button>
-      <motion.button type="button" whileTap={{ scale: 0.98 }} className="rwv-scene-action rwv-all-off" onClick={() => setAllLights(false)}>
-        <Moon size={42} />
-        <strong>{t.dashboard.allLightsOff}</strong>
-        <span>{t.dashboard.allLightsOffSubtitle}</span>
-      </motion.button>
-    </motion.div>
-  );
-}
-
-function AreaDevicePanel({ selectedView }: { selectedView: View }) {
-  const { t } = useI18n();
-  const devices = useSmartHomeStore((store) => store.devices);
-  const selectedCard = areaCards.find((card) => card.id === selectedView) ?? areaCards[0];
-  const visibleDevices = useMemo(
-    () => devices.filter((device) => selectedCard.deviceIds.includes(device.id)),
-    [devices, selectedCard.deviceIds]
-  );
-
-  return (
-    <section className="rwv-main-panel">
-      <div className="rwv-panel-heading">
-        <div>
-          <span>{t.dashboard.selectedArea}</span>
-          <h2>{t.dashboard.areas[selectedView].label}</h2>
-        </div>
-        <div className="rwv-panel-count">
-          {selectedView === 'allLights' ? lightDeviceIds.length : visibleDevices.length} {t.dashboard.devicesCount}
-        </div>
-      </div>
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={selectedView}
-          initial={{ opacity: 0, y: 14 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -10 }}
-          transition={{ duration: 0.2 }}
-        >
-          {selectedView === 'allLights' ? (
-            <AllLightsPanel />
-          ) : (
-            <div className="rwv-device-grid">
-              {visibleDevices.map((device) => (
-                <DeviceCard key={device.id} device={device} />
-              ))}
-            </div>
-          )}
-        </motion.div>
-      </AnimatePresence>
-    </section>
-  );
-}
-
-function QuickActionsOverlay() {
+function QuickActions() {
   const { t } = useI18n();
   const applyScene = useSmartHomeStore((store) => store.applyScene);
-  const allOff = useSmartHomeStore((store) => store.allOff);
+  const setDeviceState = useSmartHomeStore((store) => store.setDeviceState);
+
+  const setAllLightsOff = () => {
+    void Promise.all(lightDeviceIds.map((deviceId) => setDeviceState(deviceId, { isOn: false })));
+  };
 
   const actions = [
     { label: t.dashboard.quickNight, icon: Moon, tone: 'purple', action: () => applyScene('sleep') },
     { label: t.dashboard.quickDay, icon: Sun, tone: 'amber', action: () => applyScene('arrival') },
     { label: t.dashboard.quickPool, icon: Waves, tone: 'cyan', action: () => applyScene('poolEvening') },
-    { label: t.dashboard.quickExit, icon: Home, tone: 'green', action: () => applyScene('sleep') },
-    { label: t.dashboard.quickAllOff, icon: Power, tone: 'pink', action: () => allOff() }
+    { label: t.dashboard.quickAllLightsOff, icon: Power, tone: 'pink', action: setAllLightsOff }
   ];
 
   return (
-    <div className="rwv-quick-overlay">
+    <div className="rwv-quick-panel">
       <h3>{t.dashboard.quickActions}</h3>
       <div className="rwv-quick-actions">
         {actions.map((item) => {
           const Icon = item.icon;
           return (
-            <motion.button
-              key={item.label}
-              type="button"
-              whileTap={{ scale: 0.95 }}
-              className={`rwv-quick-action rwv-quick-${item.tone}`}
-              onClick={() => void item.action()}
-            >
-              <Icon size={33} />
+            <motion.button key={item.label} type="button" whileTap={{ scale: 0.95 }} className={`rwv-quick-action rwv-quick-${item.tone}`} onClick={() => void item.action()}>
+              <Icon size={25} />
               <span>{item.label}</span>
             </motion.button>
           );
@@ -455,10 +292,64 @@ function Hero() {
       <div className="rwv-hero-content">
         <p>{t.dashboard.welcome}</p>
         <h1>{t.dashboard.heroTitle}</h1>
-        <div className="rwv-ornament">∞</div>
         <h2>{t.dashboard.heroSubtitle}</h2>
       </div>
-      <QuickActionsOverlay />
+      <QuickActions />
+    </section>
+  );
+}
+
+function AllLightsPanel() {
+  const { t } = useI18n();
+  const setDeviceState = useSmartHomeStore((store) => store.setDeviceState);
+  const setAllLights = (isOn: boolean) => {
+    void Promise.all(lightDeviceIds.map((deviceId) => setDeviceState(deviceId, { isOn })));
+  };
+
+  return (
+    <div className="rwv-all-lights">
+      <motion.button type="button" whileTap={{ scale: 0.98 }} className="rwv-scene-action rwv-all-on" onClick={() => setAllLights(true)}>
+        <Sun size={32} />
+        <strong>{t.dashboard.allLightsOn}</strong>
+        <span>{t.dashboard.allLightsOnSubtitle}</span>
+      </motion.button>
+      <motion.button type="button" whileTap={{ scale: 0.98 }} className="rwv-scene-action rwv-all-off" onClick={() => setAllLights(false)}>
+        <Moon size={32} />
+        <strong>{t.dashboard.allLightsOff}</strong>
+        <span>{t.dashboard.allLightsOffSubtitle}</span>
+      </motion.button>
+    </div>
+  );
+}
+
+function AreaDevicePanel({ selectedView }: { selectedView: View }) {
+  const { t } = useI18n();
+  const devices = useSmartHomeStore((store) => store.devices);
+  const selectedTab = areaTabs.find((tab) => tab.id === selectedView) ?? areaTabs[0];
+  const visibleDevices = useMemo(() => devices.filter((device) => selectedTab.deviceIds.includes(device.id)), [devices, selectedTab.deviceIds]);
+
+  return (
+    <section className="rwv-devices-section">
+      <div className="rwv-panel-heading">
+        <div>
+          <span>{t.dashboard.selectedArea}</span>
+          <h2>{t.dashboard.areas[selectedView].label}</h2>
+        </div>
+        <div className="rwv-panel-count">{selectedTab.deviceIds.length} {t.dashboard.devicesCount}</div>
+      </div>
+      <AnimatePresence mode="wait">
+        <motion.div key={selectedView} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.18 }}>
+          {selectedView === 'allLights' ? (
+            <AllLightsPanel />
+          ) : (
+            <div className="rwv-device-grid">
+              {visibleDevices.map((device) => (
+                <DeviceCard key={device.id} device={device} />
+              ))}
+            </div>
+          )}
+        </motion.div>
+      </AnimatePresence>
     </section>
   );
 }
@@ -466,17 +357,10 @@ function Hero() {
 function BottomStatusCards() {
   const { t } = useI18n();
   const health = useSmartHomeStore((store) => store.health);
-
   const cards = [
-    {
-      icon: ShieldCheck,
-      title: `${providerLabel(health.status, t)} Home Assistant`,
-      subtitle: t.dashboard.connected,
-      className: 'rwv-status-green'
-    },
-    { icon: Wifi, title: t.dashboard.network, subtitle: 'Royal Water Villa', className: 'rwv-status-wifi' },
-    { icon: Gauge, title: t.dashboard.systemOk, subtitle: t.dashboard.systemNormal, className: 'rwv-status-neutral' },
-    { icon: HelpCircle, title: t.dashboard.help, subtitle: t.dashboard.helpSubtitle, className: 'rwv-status-help' }
+    { icon: ShieldCheck, title: `Home Assistant ${providerLabel(health.status, t)}`, subtitle: t.dashboard.connected, className: 'rwv-status-green' },
+    { icon: Wifi, title: `${t.dashboard.network} Royal Water Villa`, subtitle: t.dashboard.connected, className: 'rwv-status-wifi' },
+    { icon: Gauge, title: t.dashboard.systemOk, subtitle: t.dashboard.systemNormal, className: 'rwv-status-neutral' }
   ];
 
   return (
@@ -485,7 +369,7 @@ function BottomStatusCards() {
         const Icon = card.icon;
         return (
           <div key={card.title} className={`rwv-bottom-card ${card.className}`}>
-            <Icon size={30} />
+            <Icon size={23} />
             <div>
               <strong>{card.title}</strong>
               <span>{card.subtitle}</span>
@@ -501,23 +385,14 @@ function DevDebugPanel() {
   const { t } = useI18n();
   const health = useSmartHomeStore((store) => store.health);
   const debug = useSmartHomeStore((store) => store.debug);
-
-  if (!import.meta.env.DEV) {
-    return null;
-  }
+  if (!import.meta.env.DEV) return null;
 
   return (
     <aside className="debug-panel">
       <strong>{t.app.debugTitle}</strong>
-      <span>
-        {t.app.providerStatus}: {providerLabel(health.status, t)}
-      </span>
-      <span>
-        {t.app.lastHaError}: {debug.lastHaError ?? t.app.none}
-      </span>
-      <span>
-        {t.app.lastEntityAction}: {debug.lastEntityAction ?? t.app.none}
-      </span>
+      <span>{t.app.providerStatus}: {providerLabel(health.status, t)}</span>
+      <span>{t.app.lastHaError}: {debug.lastHaError ?? t.app.none}</span>
+      <span>{t.app.lastEntityAction}: {debug.lastEntityAction ?? t.app.none}</span>
     </aside>
   );
 }
@@ -529,16 +404,11 @@ export function App() {
 
   useEffect(() => {
     void sync();
-
     const handleVisible = () => {
-      if (document.visibilityState === 'visible') {
-        void sync();
-      }
+      if (document.visibilityState === 'visible') void sync();
     };
-
     window.addEventListener('focus', sync);
     document.addEventListener('visibilitychange', handleVisible);
-
     return () => {
       window.removeEventListener('focus', sync);
       document.removeEventListener('visibilitychange', handleVisible);
@@ -547,13 +417,10 @@ export function App() {
 
   return (
     <div className="rwv-shell" dir={dir}>
-      <TopBar />
+      <TopBar selectedView={selectedView} setSelectedView={setSelectedView} />
       <main className="rwv-dashboard">
-        <AreaSidebar selectedView={selectedView} setSelectedView={setSelectedView} />
-        <div className="rwv-center">
-          <Hero />
-          <AreaDevicePanel selectedView={selectedView} />
-        </div>
+        <Hero />
+        <AreaDevicePanel selectedView={selectedView} />
       </main>
       <BottomStatusCards />
       <DevDebugPanel />

@@ -60,6 +60,7 @@ export type Translation = {
     quickPool: string;
     quickExit: string;
     quickAllOff: string;
+    quickAllLightsOff: string;
     allLightsOn: string;
     allLightsOnSubtitle: string;
     allLightsOff: string;
@@ -115,8 +116,8 @@ export const translations: Record<Language, Translation> = {
     },
     dashboard: {
       welcome: 'ברוכים הבאים',
-      heroTitle: 'רויאל ווטר וילה',
-      heroSubtitle: 'שליטה חכמה. חוויה מושלמת.',
+      heroTitle: 'Royal Water Villa',
+      heroSubtitle: 'שליטה חכמה במתחם האירוח שלכם',
       areasTitle: 'אזורים',
       selectedArea: 'אזור נבחר',
       devicesCount: 'מכשירים',
@@ -132,6 +133,7 @@ export const translations: Record<Language, Translation> = {
       quickPool: 'מצב בריכה',
       quickExit: 'יציאה מהבית',
       quickAllOff: 'כיבוי כל הבית',
+      quickAllLightsOff: 'כיבוי כל התאורה',
       allLightsOn: 'כל התאורה דולקת',
       allLightsOnSubtitle: 'הדלקת כל גופי התאורה הממופים',
       allLightsOff: 'כל התאורה כבויה',
@@ -261,7 +263,7 @@ export const translations: Record<Language, Translation> = {
     dashboard: {
       welcome: 'Welcome',
       heroTitle: 'Royal Water Villa',
-      heroSubtitle: 'Smart control. Perfect experience.',
+      heroSubtitle: 'Smart control for your private villa experience',
       areasTitle: 'Areas',
       selectedArea: 'Selected area',
       devicesCount: 'devices',
@@ -277,6 +279,7 @@ export const translations: Record<Language, Translation> = {
       quickPool: 'Pool mode',
       quickExit: 'Leaving villa',
       quickAllOff: 'All home off',
+      quickAllLightsOff: 'All lights off',
       allLightsOn: 'All lights on',
       allLightsOnSubtitle: 'Turn on every mapped light',
       allLightsOff: 'All lights off',
@@ -406,7 +409,7 @@ export const translations: Record<Language, Translation> = {
     dashboard: {
       welcome: 'Bienvenue',
       heroTitle: 'Royal Water Villa',
-      heroSubtitle: 'Contrôle intelligent. Expérience parfaite.',
+      heroSubtitle: 'Contrôle intelligent de votre séjour privé',
       areasTitle: 'Zones',
       selectedArea: 'Zone sélectionnée',
       devicesCount: 'appareils',
@@ -422,6 +425,7 @@ export const translations: Record<Language, Translation> = {
       quickPool: 'Mode piscine',
       quickExit: 'Départ villa',
       quickAllOff: 'Tout éteindre',
+      quickAllLightsOff: 'Tout éclairage off',
       allLightsOn: 'Tout allumer',
       allLightsOnSubtitle: 'Allumer toutes les lumières configurées',
       allLightsOff: 'Tout éteindre',
