@@ -66,7 +66,7 @@ export type Translation = {
     allLightsOff: string;
     allLightsOffSubtitle: string;
     topNav: Record<'quickActions' | 'lights' | 'temperature' | 'air' | 'cameras' | 'settings', string>;
-    areas: Record<DeviceArea | 'allLights', { label: string }>;
+    areas: Record<DeviceArea | 'allDevices', { label: string }>;
   };
   nav: Record<'overview' | DeviceArea | 'quick', string>;
   sections: Record<'overview' | DeviceArea | 'quick', { kicker: string; title: string; subtitle: string }>;
@@ -152,7 +152,7 @@ export const translations: Record<Language, Translation> = {
         pool: { label: 'בריכה' },
         bedroom: { label: 'חדר שינה' },
         bathroom: { label: 'שירותים ומקלחת' },
-        allLights: { label: 'כל התאורה' }
+        allDevices: { label: 'כל ההתקנים' }
       }
     },
     nav: {
@@ -298,7 +298,7 @@ export const translations: Record<Language, Translation> = {
         pool: { label: 'Pool' },
         bedroom: { label: 'Bedroom' },
         bathroom: { label: 'Bathroom' },
-        allLights: { label: 'All lighting' }
+        allDevices: { label: 'All devices' }
       }
     },
     nav: {
@@ -444,7 +444,7 @@ export const translations: Record<Language, Translation> = {
         pool: { label: 'Piscine' },
         bedroom: { label: 'Chambre' },
         bathroom: { label: 'Salle de bain' },
-        allLights: { label: 'Tout éclairage' }
+        allDevices: { label: 'Tous les appareils' }
       }
     },
     nav: {

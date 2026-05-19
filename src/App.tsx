@@ -26,7 +26,7 @@ import type { Language, Translation } from './i18n/translations';
 import { useSmartHomeStore } from './store/useSmartHomeStore';
 import type { Device, DeviceArea, DeviceId } from './types/devices';
 
-type View = DeviceArea | 'allLights';
+type View = DeviceArea | 'allDevices';
 
 const areaTabs: Array<{ id: View; icon: typeof Home; deviceIds: DeviceId[] }> = [
   { id: 'salon', icon: Sofa, deviceIds: ['salonCeilingSpots', 'salonLedWall'] },
@@ -35,7 +35,7 @@ const areaTabs: Array<{ id: View; icon: typeof Home; deviceIds: DeviceId[] }> = 
   { id: 'bedroom', icon: BedDouble, deviceIds: ['bedroomFanLight', 'ceilingFan'] },
   { id: 'bathroom', icon: Bath, deviceIds: ['bathroomLight', 'bathroomHeater'] },
   {
-    id: 'allLights',
+    id: 'allDevices',
     icon: Lamp,
     deviceIds: [
       'salonCeilingSpots',
@@ -60,7 +60,8 @@ const areaIcons: Record<DeviceArea, typeof Home> = {
   bathroom: ThermometerSun
 };
 
-const lightDeviceIds = areaTabs.find((tab) => tab.id === 'allLights')?.deviceIds ?? [];
+const allDeviceIds = areaTabs.find((tab) => tab.id === 'allDevices')?.deviceIds ?? [];
+const lightDeviceIds = allDeviceIds.filter((deviceId) => deviceId !== 'ceilingFan' && deviceId !== 'bathroomHeater');
 
 function providerLabel(status: string, t: Translation) {
   if (status === 'mock') return t.app.mockMode;
@@ -299,7 +300,7 @@ function Hero() {
   );
 }
 
-function AllLightsPanel() {
+function AllLightsActions() {
   const { t } = useI18n();
   const setDeviceState = useSmartHomeStore((store) => store.setDeviceState);
   const setAllLights = (isOn: boolean) => {
@@ -307,16 +308,14 @@ function AllLightsPanel() {
   };
 
   return (
-    <div className="rwv-all-lights">
-      <motion.button type="button" whileTap={{ scale: 0.98 }} className="rwv-scene-action rwv-all-on" onClick={() => setAllLights(true)}>
-        <Sun size={32} />
+    <div className="rwv-all-light-actions">
+      <motion.button type="button" whileTap={{ scale: 0.98 }} className="rwv-light-action rwv-all-on" onClick={() => setAllLights(true)}>
+        <Sun size={22} />
         <strong>{t.dashboard.allLightsOn}</strong>
-        <span>{t.dashboard.allLightsOnSubtitle}</span>
       </motion.button>
-      <motion.button type="button" whileTap={{ scale: 0.98 }} className="rwv-scene-action rwv-all-off" onClick={() => setAllLights(false)}>
-        <Moon size={32} />
+      <motion.button type="button" whileTap={{ scale: 0.98 }} className="rwv-light-action rwv-all-off" onClick={() => setAllLights(false)}>
+        <Moon size={22} />
         <strong>{t.dashboard.allLightsOff}</strong>
-        <span>{t.dashboard.allLightsOffSubtitle}</span>
       </motion.button>
     </div>
   );
@@ -339,15 +338,12 @@ function AreaDevicePanel({ selectedView }: { selectedView: View }) {
       </div>
       <AnimatePresence mode="wait">
         <motion.div key={selectedView} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.18 }}>
-          {selectedView === 'allLights' ? (
-            <AllLightsPanel />
-          ) : (
-            <div className="rwv-device-grid">
-              {visibleDevices.map((device) => (
-                <DeviceCard key={device.id} device={device} />
-              ))}
-            </div>
-          )}
+          {selectedView === 'allDevices' ? <AllLightsActions /> : null}
+          <div className="rwv-device-grid">
+            {visibleDevices.map((device) => (
+              <DeviceCard key={device.id} device={device} />
+            ))}
+          </div>
         </motion.div>
       </AnimatePresence>
     </section>

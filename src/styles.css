@@ -23,7 +23,7 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  overflow: hidden;
+  overflow: auto;
 }
 
 button {
@@ -32,7 +32,7 @@ button {
 
 .rwv-shell {
   min-height: 100vh;
-  overflow: hidden;
+  overflow-y: auto;
   color: #f5f0e8;
   background:
     radial-gradient(circle at 16% 0%, rgba(214, 181, 109, 0.12), transparent 24%),
@@ -168,15 +168,17 @@ button {
 
 .rwv-dashboard {
   display: grid;
-  grid-template-rows: minmax(300px, 1fr) auto;
+  grid-template-rows: minmax(390px, auto) auto;
   gap: 16px;
-  height: calc(100vh - 178px);
+  min-height: calc(100vh - 178px);
   padding-top: 14px;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .rwv-hero {
   position: relative;
+  display: grid;
+  grid-template-rows: minmax(250px, 1fr) auto;
   min-height: 0;
   overflow: hidden;
   border: 1px solid rgba(214, 181, 109, 0.42);
@@ -206,14 +208,14 @@ button {
   display: grid;
   place-items: center;
   align-content: center;
-  min-height: 62%;
+  min-height: 280px;
   padding: 32px;
   text-align: center;
 }
 
 .rwv-hero-content p {
   color: #f5f0e8;
-  font-size: clamp(2rem, 3.4vw, 4rem);
+  font-size: clamp(1.85rem, 3vw, 3.55rem);
   font-weight: 300;
   line-height: 1;
   text-shadow: 0 12px 40px rgba(0, 0, 0, 0.58);
@@ -223,7 +225,7 @@ button {
   margin-top: 14px;
   color: #f1cc78;
   font-family: Georgia, 'Times New Roman', serif;
-  font-size: clamp(2.8rem, 4.6vw, 5.7rem);
+  font-size: clamp(2.5rem, 4vw, 5rem);
   font-weight: 600;
   line-height: 1;
   text-shadow: 0 16px 42px rgba(0, 0, 0, 0.74);
@@ -232,16 +234,16 @@ button {
 .rwv-hero-content h2 {
   margin-top: 18px;
   color: #f5f0e8;
-  font-size: clamp(1.2rem, 1.8vw, 2rem);
+  font-size: clamp(1.08rem, 1.55vw, 1.7rem);
   font-weight: 400;
 }
 
 .rwv-quick-panel {
-  position: absolute;
+  position: relative;
   z-index: 2;
-  inset-inline: 22%;
-  bottom: 20px;
-  padding: 14px 18px;
+  width: min(760px, calc(100% - 48px));
+  margin: 0 auto 18px;
+  padding: 12px 16px;
   border: 1px solid rgba(214, 181, 109, 0.34);
   border-radius: 22px;
   background: rgba(7, 17, 25, 0.72);
@@ -267,7 +269,7 @@ button {
   display: grid;
   place-items: center;
   gap: 6px;
-  min-height: 72px;
+  min-height: 62px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 16px;
   color: #f5f0e8;
@@ -283,7 +285,7 @@ button {
 
 .rwv-devices-section {
   min-height: 0;
-  overflow: hidden;
+  overflow: visible;
   border: 1px solid rgba(214, 181, 109, 0.26);
   border-radius: 26px;
   background: rgba(5, 16, 18, 0.62);
