@@ -50,6 +50,9 @@ export type Translation = {
     devicesCount: string;
     connected: string;
     network: string;
+    wifiPassword: string;
+    checkIn: string;
+    checkOut: string;
     systemOk: string;
     systemNormal: string;
     help: string;
@@ -136,6 +139,9 @@ export const translations: Record<Language, Translation> = {
       devicesCount: 'מכשירים',
       connected: 'מחובר',
       network: 'רשת',
+      wifiPassword: 'סיסמה: 123456789',
+      checkIn: "צ'ק אין: 15:00",
+      checkOut: "צ'ק אאוט: 10:00 בבוקר",
       systemOk: 'מצב מערכת תקין',
       systemNormal: 'כל המערכות זמינות',
       help: 'עזרה',
@@ -295,6 +301,9 @@ export const translations: Record<Language, Translation> = {
       devicesCount: 'devices',
       connected: 'Connected',
       network: 'Network',
+      wifiPassword: 'Mot de passe : 123456789',
+      checkIn: 'Check in: 15:00',
+      checkOut: 'Check out: 10:00 AM',
       systemOk: 'System healthy',
       systemNormal: 'All systems available',
       help: 'Help',
@@ -454,6 +463,9 @@ export const translations: Record<Language, Translation> = {
       devicesCount: 'appareils',
       connected: 'Connecté',
       network: 'Réseau',
+      wifiPassword: 'Password: 123456789',
+      checkIn: 'Check-in : 15:00',
+      checkOut: 'Check-out : 10:00',
       systemOk: 'Système normal',
       systemNormal: 'Tous les systèmes disponibles',
       help: 'Aide',

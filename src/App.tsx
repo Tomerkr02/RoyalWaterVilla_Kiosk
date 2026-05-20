@@ -11,7 +11,6 @@ import {
   Lamp,
   Moon,
   Power,
-  ShieldCheck,
   Sofa,
   Sun,
   ThermometerSun,
@@ -459,11 +458,10 @@ function AreaDevicePanel({ selectedView }: { selectedView: AreaView }) {
 
 function BottomStatusCards() {
   const { t } = useI18n();
-  const health = useSmartHomeStore((store) => store.health);
   const cards = [
-    { icon: ShieldCheck, title: `Home Assistant ${providerLabel(health.status, t)}`, subtitle: t.dashboard.connected, className: 'rwv-status-green' },
-    { icon: Wifi, title: `${t.dashboard.network} Royal Water Villa`, subtitle: t.dashboard.connected, className: 'rwv-status-wifi' },
-    { icon: Gauge, title: t.dashboard.systemOk, subtitle: t.dashboard.systemNormal, className: 'rwv-status-neutral' }
+    { icon: CalendarClock, title: t.dashboard.checkIn, lines: [t.dashboard.checkOut], className: 'rwv-status-green' },
+    { icon: Wifi, title: 'Royal Water Villa', lines: [t.dashboard.wifiPassword], className: 'rwv-status-wifi' },
+    { icon: Gauge, title: t.dashboard.systemOk, lines: [t.dashboard.systemNormal], className: 'rwv-status-neutral' }
   ];
 
   return (
@@ -475,7 +473,9 @@ function BottomStatusCards() {
             <Icon size={23} />
             <div>
               <strong>{card.title}</strong>
-              <span>{card.subtitle}</span>
+              {card.lines.map((line) => (
+                <span key={line}>{line}</span>
+              ))}
             </div>
           </div>
         );
