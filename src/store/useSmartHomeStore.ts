@@ -28,6 +28,16 @@ type ShabbatModeState = {
   devices: Record<DeviceId, ShabbatDeviceSchedule>;
 };
 
+type ShabbatExecutionStatus = 'waiting' | 'success' | 'failed';
+
+type ShabbatExecutionState = {
+  status: ShabbatExecutionStatus;
+  lastAction?: string;
+  lastRunAt?: number;
+  lastError?: string;
+  perDevice: Partial<Record<DeviceId, ShabbatExecutionStatus>>;
+};
+
 type SmartHomeStore = {
   devices: typeof devices;
   scenes: Scene[];
@@ -39,6 +49,7 @@ type SmartHomeStore = {
   error?: string;
   debug: DebugInfo;
   shabbatMode: ShabbatModeState;
+  shabbatExecution: ShabbatExecutionState;
   sync: () => Promise<void>;
   setDeviceState: (deviceId: DeviceId, patch: Partial<DeviceState>) => Promise<void>;
   toggleDevice: (deviceId: DeviceId) => Promise<void>;
@@ -47,11 +58,14 @@ type SmartHomeStore = {
   allOff: () => Promise<void>;
   setShabbatModeActive: (active: boolean) => void;
   setShabbatScheduleTime: (deviceId: DeviceId, scheduleId: string, time: string) => void;
+  runShabbatScheduler: () => Promise<void>;
 };
 
 const provider = createProvider();
 const targetedSyncDelays = [300, 900, 1800] as const;
 const defaultShabbatLabels = ['הדלקה', 'כיבוי', 'הדלקה', 'כיבוי'] as const;
+const executedStorageKey = 'royal-water-villa-shabbat-executed-actions';
+let shabbatRunnerBusy = false;
 
 function createDefaultShabbatMode(): ShabbatModeState {
   return {
@@ -99,6 +113,45 @@ function mergeStates(current: DeviceStateMap, incoming: Partial<DeviceStateMap>)
   }, {} as DeviceStateMap);
 }
 
+function createDefaultExecutionState(): ShabbatExecutionState {
+  return {
+    status: 'waiting',
+    perDevice: {}
+  };
+}
+
+function isValidScheduleTime(time: string) {
+  return /^([01]\d|2[0-3]):[0-5]\d$/.test(time);
+}
+
+function dateKey(now: Date) {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).format(now);
+}
+
+function minuteKey(now: Date) {
+  return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+}
+
+function readExecutedKeys(today: string) {
+  if (typeof window === 'undefined') return new Set<string>();
+  try {
+    const stored = JSON.parse(window.localStorage.getItem(executedStorageKey) ?? '[]') as string[];
+    return new Set(stored.filter((key) => key.startsWith(`${today}:`)));
+  } catch {
+    return new Set<string>();
+  }
+}
+
+function writeExecutedKeys(keys: Set<string>) {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(executedStorageKey, JSON.stringify([...keys]));
+}
+
 export const useSmartHomeStore = create<SmartHomeStore>()(
   persist(
     (set, get) => ({
@@ -110,6 +163,7 @@ export const useSmartHomeStore = create<SmartHomeStore>()(
   health: provider.getHealth(),
   debug: {},
   shabbatMode: createDefaultShabbatMode(),
+  shabbatExecution: createDefaultExecutionState(),
   async sync() {
     try {
       const states = await get().provider.getStates();
@@ -331,7 +385,6 @@ export const useSmartHomeStore = create<SmartHomeStore>()(
         active
       }
     }));
-    // TODO: connect the future Shabbat execution runner to Home Assistant here.
   },
   setShabbatScheduleTime(deviceId, scheduleId, time) {
     set((store) => ({
@@ -347,7 +400,117 @@ export const useSmartHomeStore = create<SmartHomeStore>()(
         }
       }
     }));
-    // TODO: the future scheduler should read this persisted time and dispatch HA services.
+  },
+  async runShabbatScheduler() {
+    if (shabbatRunnerBusy) return;
+
+    const store = get();
+    if (!store.shabbatMode.active) {
+      set((current) => ({
+        shabbatExecution: {
+          ...current.shabbatExecution,
+          status: 'waiting'
+        }
+      }));
+      return;
+    }
+
+    shabbatRunnerBusy = true;
+    const now = new Date();
+    const today = dateKey(now);
+    const currentMinute = minuteKey(now);
+    const executedKeys = readExecutedKeys(today);
+    let ranAction = false;
+
+    try {
+      for (const device of store.devices) {
+        const state = get().states[device.id];
+        const schedules = get().shabbatMode.devices[device.id]?.schedule ?? [];
+
+        if (!state?.isAvailable) {
+          continue;
+        }
+
+        for (const item of schedules) {
+          if (!item.time || !isValidScheduleTime(item.time) || item.time !== currentMinute) {
+            continue;
+          }
+
+          const executionKey = `${today}:${device.id}:${item.id}:${item.time}:${item.type}`;
+          if (executedKeys.has(executionKey)) {
+            continue;
+          }
+
+          ranAction = true;
+          executedKeys.add(executionKey);
+          writeExecutedKeys(executedKeys);
+
+          const targetIsOn = item.type === 'on';
+          const action = `${device.id} ${item.type} ${item.time}`;
+
+          set((current) => ({
+            shabbatExecution: {
+              ...current.shabbatExecution,
+              status: 'waiting',
+              lastAction: action,
+              lastRunAt: Date.now(),
+              lastError: undefined,
+              perDevice: {
+                ...current.shabbatExecution.perDevice,
+                [device.id]: 'waiting'
+              }
+            }
+          }));
+
+          try {
+            await get().setDeviceState(device.id, {
+              isOn: targetIsOn,
+              fanSpeed: device.kind === 'fan' && targetIsOn ? 2 : device.kind === 'fan' ? 0 : undefined
+            });
+
+            set((current) => ({
+              shabbatExecution: {
+                ...current.shabbatExecution,
+                status: 'success',
+                lastAction: action,
+                lastRunAt: Date.now(),
+                lastError: undefined,
+                perDevice: {
+                  ...current.shabbatExecution.perDevice,
+                  [device.id]: 'success'
+                }
+              }
+            }));
+          } catch (error) {
+            const message = error instanceof Error ? error.message : 'Shabbat action failed';
+            set((current) => ({
+              shabbatExecution: {
+                ...current.shabbatExecution,
+                status: 'failed',
+                lastAction: action,
+                lastRunAt: Date.now(),
+                lastError: message,
+                perDevice: {
+                  ...current.shabbatExecution.perDevice,
+                  [device.id]: 'failed'
+                }
+              }
+            }));
+          }
+        }
+      }
+
+      if (!ranAction) {
+        set((current) => ({
+          shabbatExecution: {
+            ...current.shabbatExecution,
+            status: 'waiting'
+          }
+        }));
+      }
+    } finally {
+      shabbatRunnerBusy = false;
+    }
   }
 }),
     {

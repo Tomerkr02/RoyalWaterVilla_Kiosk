@@ -83,6 +83,11 @@ export type Translation = {
     schedulesMuted: string;
     schedulesReady: string;
     timePlaceholder: string;
+    statusDone: string;
+    statusWaiting: string;
+    statusFailed: string;
+    lastAction: string;
+    lastRun: string;
   };
   nav: Record<'overview' | DeviceArea | 'quick', string>;
   sections: Record<'overview' | DeviceArea | 'quick', { kicker: string; title: string; subtitle: string }>;
@@ -185,7 +190,12 @@ export const translations: Record<Language, Translation> = {
       mainToggle: 'הפעלת מצב שבת',
       schedulesMuted: 'הזמנים שמורים אך כבויים עד להפעלה',
       schedulesReady: 'אפשר לערוך את זמני השבת',
-      timePlaceholder: 'בחרו שעה'
+      timePlaceholder: 'בחרו שעה',
+      statusDone: 'בוצע',
+      statusWaiting: 'ממתין',
+      statusFailed: 'נכשל',
+      lastAction: 'פעולה אחרונה',
+      lastRun: 'בדיקה אחרונה'
     },
     nav: {
       overview: 'סקירה',
@@ -301,7 +311,7 @@ export const translations: Record<Language, Translation> = {
       devicesCount: 'devices',
       connected: 'Connected',
       network: 'Network',
-      wifiPassword: 'Mot de passe : 123456789',
+      wifiPassword: 'Password: 123456789',
       checkIn: 'Check in: 15:00',
       checkOut: 'Check out: 10:00 AM',
       systemOk: 'System healthy',
@@ -347,7 +357,12 @@ export const translations: Record<Language, Translation> = {
       mainToggle: 'Enable Shabbat Mode',
       schedulesMuted: 'Times are saved but disabled until active',
       schedulesReady: 'Shabbat times can be edited',
-      timePlaceholder: 'Select time'
+      timePlaceholder: 'Select time',
+      statusDone: 'Done',
+      statusWaiting: 'Waiting',
+      statusFailed: 'Failed',
+      lastAction: 'Last action',
+      lastRun: 'Last run'
     },
     nav: {
       overview: 'Overview',
@@ -463,7 +478,7 @@ export const translations: Record<Language, Translation> = {
       devicesCount: 'appareils',
       connected: 'Connecté',
       network: 'Réseau',
-      wifiPassword: 'Password: 123456789',
+      wifiPassword: 'Mot de passe : 123456789',
       checkIn: 'Check-in : 15:00',
       checkOut: 'Check-out : 10:00',
       systemOk: 'Système normal',
@@ -509,7 +524,12 @@ export const translations: Record<Language, Translation> = {
       mainToggle: 'Activer le Mode Chabbat',
       schedulesMuted: 'Les horaires sont enregistrés mais désactivés',
       schedulesReady: 'Les horaires de Chabbat peuvent être modifiés',
-      timePlaceholder: 'Choisir une heure'
+      timePlaceholder: 'Choisir une heure',
+      statusDone: 'Exécuté',
+      statusWaiting: 'En attente',
+      statusFailed: 'Échec',
+      lastAction: 'Dernière action',
+      lastRun: 'Dernière vérification'
     },
     nav: {
       overview: 'Accueil',

@@ -91,6 +91,12 @@ function formatTime(timestamp: number | undefined, language: Language, fallback:
   return new Intl.DateTimeFormat(locale, { hour: '2-digit', minute: '2-digit' }).format(timestamp);
 }
 
+function shabbatStatusLabel(status: 'waiting' | 'success' | 'failed' | undefined, t: Translation) {
+  if (status === 'success') return t.shabbat.statusDone;
+  if (status === 'failed') return t.shabbat.statusFailed;
+  return t.shabbat.statusWaiting;
+}
+
 function LanguageSwitcher() {
   const { language, t } = useI18n();
   const setLanguage = useLanguageStore((state) => state.setLanguage);
@@ -358,10 +364,11 @@ function AllLightsActions() {
 }
 
 function ShabbatModePanel() {
-  const { t } = useI18n();
+  const { language, t } = useI18n();
   const devices = useSmartHomeStore((store) => store.devices);
   const states = useSmartHomeStore((store) => store.states);
   const shabbatMode = useSmartHomeStore((store) => store.shabbatMode);
+  const shabbatExecution = useSmartHomeStore((store) => store.shabbatExecution);
   const setShabbatModeActive = useSmartHomeStore((store) => store.setShabbatModeActive);
   const setShabbatScheduleTime = useSmartHomeStore((store) => store.setShabbatScheduleTime);
 
@@ -391,10 +398,25 @@ function ShabbatModePanel() {
         {shabbatMode.active ? t.shabbat.schedulesReady : t.shabbat.schedulesMuted}
       </div>
 
+      <div className={['rwv-shabbat-runner-log', `status-${shabbatExecution.status}`].join(' ')}>
+        <div>
+          <span>{t.shabbat.lastAction}</span>
+          <strong>{shabbatExecution.lastAction ?? shabbatStatusLabel(shabbatExecution.status, t)}</strong>
+        </div>
+        <div>
+          <span>{t.shabbat.lastRun}</span>
+          <strong>{formatTime(shabbatExecution.lastRunAt, language, t.shabbat.statusWaiting)}</strong>
+        </div>
+        <div className="rwv-shabbat-runner-status">
+          {shabbatStatusLabel(shabbatExecution.status, t)}
+        </div>
+      </div>
+
       <div className="rwv-shabbat-device-grid">
         {devices.map((device) => {
           const deviceSchedule = shabbatMode.devices[device.id].schedule;
           const deviceState = states[device.id];
+          const executionStatus = shabbatExecution.perDevice[device.id];
           return (
             <article key={device.id} className={['rwv-shabbat-device-card', !shabbatMode.active ? 'muted' : ''].join(' ')}>
               <div className="rwv-shabbat-device-head">
@@ -402,7 +424,12 @@ function ShabbatModePanel() {
                   <span>{t.dashboard.areas[device.area].label}</span>
                   <h3>{t.devices[device.id].name}</h3>
                 </div>
-                <div className={deviceState.isOn ? 'rwv-status-on' : 'rwv-status-off'}>{deviceState.isOn ? t.app.on : t.app.off}</div>
+                <div className="rwv-shabbat-card-statuses">
+                  <div className={deviceState.isOn ? 'rwv-status-on' : 'rwv-status-off'}>{deviceState.isOn ? t.app.on : t.app.off}</div>
+                  <div className={['rwv-shabbat-execution-pill', `status-${executionStatus ?? 'waiting'}`].join(' ')}>
+                    {shabbatStatusLabel(executionStatus, t)}
+                  </div>
+                </div>
               </div>
               <div className="rwv-shabbat-schedule-grid">
                 {deviceSchedule.map((item) => (
@@ -503,6 +530,7 @@ function DevDebugPanel() {
 export function App() {
   const [selectedView, setSelectedView] = useState<View>('home');
   const sync = useSmartHomeStore((store) => store.sync);
+  const runShabbatScheduler = useSmartHomeStore((store) => store.runShabbatScheduler);
   const { dir, t } = useI18n();
 
   useEffect(() => {
@@ -517,6 +545,14 @@ export function App() {
       document.removeEventListener('visibilitychange', handleVisible);
     };
   }, [sync]);
+
+  useEffect(() => {
+    void runShabbatScheduler();
+    const id = window.setInterval(() => {
+      void runShabbatScheduler();
+    }, 20_000);
+    return () => window.clearInterval(id);
+  }, [runShabbatScheduler]);
 
   return (
     <div className="rwv-shell" dir={dir}>
