@@ -1,6 +1,8 @@
 export type DeviceArea = 'salon' | 'outdoor' | 'pool' | 'bedroom' | 'bathroom';
 
-export type DeviceKind = 'switch' | 'light' | 'fan' | 'heater';
+export type DeviceKind = 'switch' | 'light' | 'fan' | 'heater' | 'climate';
+
+export type HvacMode = 'cool' | 'heat' | 'auto' | 'fan_only' | 'off';
 
 export type DeviceId =
   | 'salonCeilingSpots'
@@ -14,6 +16,7 @@ export type DeviceId =
   | 'bathroomLight'
   | 'bedroomFanLight'
   | 'ceilingFan'
+  | 'bedroomAc'
   | 'bathroomHeater';
 
 export type DeviceState = {
@@ -21,6 +24,10 @@ export type DeviceState = {
   isAvailable: boolean;
   brightness?: number;
   fanSpeed?: 0 | 1 | 2 | 3;
+  currentTemperature?: number;
+  targetTemperature?: number;
+  hvacMode?: HvacMode;
+  hvacAction?: string;
   lastSyncedAt?: number;
 };
 

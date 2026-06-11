@@ -3,7 +3,7 @@ import { persist } from 'zustand/middleware';
 import { devices, initialDeviceStates, scenes } from '../config/devices';
 import { createProvider } from '../providers/providerFactory';
 import type { ProviderHealth, SmartHomeProvider } from '../providers/SmartHomeProvider';
-import type { DeviceId, DeviceState, DeviceStateMap, Scene } from '../types/devices';
+import type { DeviceId, DeviceState, DeviceStateMap, HvacMode, Scene } from '../types/devices';
 
 type CommandStatus = Record<DeviceId, boolean>;
 
@@ -54,6 +54,8 @@ type SmartHomeStore = {
   setDeviceState: (deviceId: DeviceId, patch: Partial<DeviceState>) => Promise<void>;
   toggleDevice: (deviceId: DeviceId) => Promise<void>;
   setFanSpeed: (deviceId: DeviceId, fanSpeed: 0 | 1 | 2 | 3) => Promise<void>;
+  setClimateTemperature: (deviceId: DeviceId, targetTemperature: number) => Promise<void>;
+  setClimateMode: (deviceId: DeviceId, hvacMode: HvacMode) => Promise<void>;
   applyScene: (sceneId: string) => Promise<void>;
   allOff: () => Promise<void>;
   setShabbatModeActive: (active: boolean) => void;
@@ -354,6 +356,17 @@ export const useSmartHomeStore = create<SmartHomeStore>()(
     await get().setDeviceState(deviceId, {
       fanSpeed,
       isOn: fanSpeed > 0
+    });
+  },
+  async setClimateTemperature(deviceId, targetTemperature) {
+    await get().setDeviceState(deviceId, {
+      targetTemperature
+    });
+  },
+  async setClimateMode(deviceId, hvacMode) {
+    await get().setDeviceState(deviceId, {
+      hvacMode,
+      isOn: hvacMode !== 'off'
     });
   },
   async applyScene(sceneId) {

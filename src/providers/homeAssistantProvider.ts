@@ -1,5 +1,5 @@
 import { devices } from '../config/devices';
-import type { Device, DeviceId, DeviceState, DeviceStateMap } from '../types/devices';
+import type { Device, DeviceId, DeviceState, DeviceStateMap, HvacMode } from '../types/devices';
 import type { SmartHomeProvider } from './SmartHomeProvider';
 
 type HomeAssistantEntity = {
@@ -8,6 +8,9 @@ type HomeAssistantEntity = {
   attributes?: {
     brightness?: number;
     percentage?: number;
+    current_temperature?: number;
+    temperature?: number;
+    hvac_action?: string;
   };
 };
 
@@ -58,12 +61,17 @@ function domainFor(entityId: string) {
 function toDeviceState(entity: HomeAssistantEntity): DeviceState {
   const unavailable = entity.state === 'unavailable' || entity.state === 'unknown';
   const percentage = entity.attributes?.percentage;
+  const isClimate = domainFor(entity.entity_id) === 'climate';
 
   return {
-    isOn: entity.state === 'on' || entity.state === 'heat',
+    isOn: isClimate ? entity.state !== 'off' && !unavailable : entity.state === 'on' || entity.state === 'heat',
     isAvailable: !unavailable,
     brightness: entity.attributes?.brightness,
     fanSpeed: typeof percentage === 'number' ? (Math.max(1, Math.ceil(percentage / 33)) as 1 | 2 | 3) : undefined,
+    currentTemperature: entity.attributes?.current_temperature,
+    targetTemperature: entity.attributes?.temperature,
+    hvacMode: isClimate ? (entity.state as HvacMode) : undefined,
+    hvacAction: entity.attributes?.hvac_action,
     lastSyncedAt: Date.now()
   };
 }
@@ -144,6 +152,28 @@ async function callClimateService(config: HomeAssistantConfig, device: Device, i
   await callPowerService(config, device, isOn);
 }
 
+async function callSetTemperature(config: HomeAssistantConfig, device: Device, temperature: number) {
+  await request<unknown>(config, '/service', {
+    method: 'POST',
+    body: JSON.stringify({
+      domain: 'climate',
+      service: 'set_temperature',
+      data: { entity_id: device.entityId, temperature }
+    })
+  });
+}
+
+async function callSetHvacMode(config: HomeAssistantConfig, device: Device, hvacMode: HvacMode) {
+  await request<unknown>(config, '/service', {
+    method: 'POST',
+    body: JSON.stringify({
+      domain: 'climate',
+      service: 'set_hvac_mode',
+      data: { entity_id: device.entityId, hvac_mode: hvacMode }
+    })
+  });
+}
+
 async function fetchEntityState(config: HomeAssistantConfig, device: Device) {
   if (import.meta.env.DEV) {
     console.info('[HA] fetch entity state', {
@@ -220,6 +250,16 @@ export function createHomeAssistantProvider(): SmartHomeProvider | null {
               data: { entity_id: device.entityId, percentage: patch.fanSpeed * 33 }
             })
           });
+        }
+      }
+
+      if (device.kind === 'climate') {
+        if (typeof patch.targetTemperature === 'number') {
+          await callSetTemperature(config, device, patch.targetTemperature);
+        }
+
+        if (patch.hvacMode && patch.hvacMode !== 'off') {
+          await callSetHvacMode(config, device, patch.hvacMode);
         }
       }
 

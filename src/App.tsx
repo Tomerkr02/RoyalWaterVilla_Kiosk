@@ -9,8 +9,11 @@ import {
   Gauge,
   Home,
   Lamp,
+  Minus,
   Moon,
+  Plus,
   Power,
+  Snowflake,
   Sofa,
   Sun,
   ThermometerSun,
@@ -22,7 +25,7 @@ import blueWaterNightImage from './assets/images/royal-water-villa-blue-water-ni
 import { useI18n, useLanguageStore } from './i18n/useLanguageStore';
 import type { Language, Translation } from './i18n/translations';
 import { useSmartHomeStore } from './store/useSmartHomeStore';
-import type { Device, DeviceArea, DeviceId } from './types/devices';
+import type { Device, DeviceArea, DeviceId, HvacMode } from './types/devices';
 
 type AreaView = DeviceArea | 'allDevices';
 type View = 'home' | 'shabbat' | AreaView;
@@ -31,7 +34,7 @@ const areaTabs: Array<{ id: AreaView; icon: typeof Home; deviceIds: DeviceId[] }
   { id: 'salon', icon: Sofa, deviceIds: ['salonCeilingSpots', 'salonLedWall'] },
   { id: 'outdoor', icon: Trees, deviceIds: ['pergolaLight', 'wallLight', 'backPathwayLight', 'outdoorWallLight'] },
   { id: 'pool', icon: Waves, deviceIds: ['poolLight', 'outdoorBarLight'] },
-  { id: 'bedroom', icon: BedDouble, deviceIds: ['bedroomFanLight', 'ceilingFan'] },
+  { id: 'bedroom', icon: BedDouble, deviceIds: ['bedroomFanLight', 'ceilingFan', 'bedroomAc'] },
   { id: 'bathroom', icon: Bath, deviceIds: ['bathroomLight', 'bathroomHeater'] },
   {
     id: 'allDevices',
@@ -48,6 +51,7 @@ const areaTabs: Array<{ id: AreaView; icon: typeof Home; deviceIds: DeviceId[] }
       'bathroomLight',
       'bedroomFanLight',
       'ceilingFan',
+      'bedroomAc',
       'bathroomHeater'
     ]
   }
@@ -62,7 +66,7 @@ const areaIcons: Record<DeviceArea, typeof Home> = {
 };
 
 const allDeviceIds = areaTabs.find((tab) => tab.id === 'allDevices')?.deviceIds ?? [];
-const lightDeviceIds = allDeviceIds.filter((deviceId) => deviceId !== 'ceilingFan' && deviceId !== 'bathroomHeater');
+const lightDeviceIds = allDeviceIds.filter((deviceId) => deviceId !== 'ceilingFan' && deviceId !== 'bedroomAc' && deviceId !== 'bathroomHeater');
 
 function providerLabel(status: string, t: Translation) {
   if (status === 'mock') return t.app.mockMode;
@@ -256,6 +260,111 @@ function DeviceCard({ device }: { device: Device }) {
       ) : null}
     </motion.article>
   );
+}
+
+const climateModes: HvacMode[] = ['cool', 'heat', 'auto', 'fan_only'];
+
+function formatHvacMode(mode: HvacMode | undefined, t: Translation) {
+  return t.climate.modes[mode ?? 'auto'];
+}
+
+function ClimateCard({ device }: { device: Device }) {
+  const { language, t } = useI18n();
+  const state = useSmartHomeStore((store) => store.states[device.id]);
+  const pending = useSmartHomeStore((store) => store.pending[device.id]);
+  const setDeviceState = useSmartHomeStore((store) => store.setDeviceState);
+  const setClimateTemperature = useSmartHomeStore((store) => store.setClimateTemperature);
+  const setClimateMode = useSmartHomeStore((store) => store.setClimateMode);
+  const copy = t.devices[device.id];
+  const targetTemperature = state.targetTemperature ?? 24;
+  const currentTemperature = state.currentTemperature ?? targetTemperature;
+  const activeMode = state.hvacMode && state.hvacMode !== 'off' ? state.hvacMode : 'cool';
+
+  const changeTemperature = (delta: number) => {
+    const nextTemperature = Math.min(30, Math.max(16, targetTemperature + delta));
+    void setClimateTemperature(device.id, nextTemperature);
+  };
+
+  return (
+    <motion.article
+      layout
+      initial={{ opacity: 0, y: 14 }}
+      animate={{ opacity: 1, y: 0 }}
+      className={['rwv-climate-card', state.isOn ? 'rwv-climate-on' : '', pending ? 'rwv-device-syncing' : ''].join(' ')}
+    >
+      <div className="rwv-climate-top">
+        <div className="rwv-device-icon rwv-climate-icon">
+          <Snowflake size={25} />
+        </div>
+        <button
+          type="button"
+          className={['rwv-climate-power', state.isOn ? 'active' : ''].join(' ')}
+          aria-label={`${state.isOn ? t.app.turnOff : t.app.turnOn} ${copy.name}`}
+          onClick={() => void setDeviceState(device.id, { isOn: !state.isOn, hvacMode: state.isOn ? 'off' : activeMode })}
+        >
+          <Power size={19} />
+        </button>
+      </div>
+
+      <div className="rwv-climate-title">
+        <h3>{copy.name}</h3>
+        <p>{copy.subtitle}</p>
+      </div>
+
+      <div className="rwv-climate-readings">
+        <div>
+          <span>{t.climate.room}</span>
+          <strong>{Math.round(currentTemperature)}°</strong>
+        </div>
+        <div>
+          <span>{t.climate.target}</span>
+          <strong>{Math.round(targetTemperature)}°</strong>
+        </div>
+        <div>
+          <span>{t.climate.mode}</span>
+          <strong>{formatHvacMode(state.hvacMode, t)}</strong>
+        </div>
+      </div>
+
+      <div className="rwv-climate-controls">
+        <button type="button" onClick={() => changeTemperature(-1)} aria-label="Lower target temperature">
+          <Minus size={18} />
+        </button>
+        <strong>{Math.round(targetTemperature)}°</strong>
+        <button type="button" onClick={() => changeTemperature(1)} aria-label="Raise target temperature">
+          <Plus size={18} />
+        </button>
+      </div>
+
+      <div className="rwv-climate-modes">
+        {climateModes.map((mode) => (
+          <button
+            key={mode}
+            type="button"
+            className={activeMode === mode && state.isOn ? 'active' : ''}
+            onClick={() => void setClimateMode(device.id, mode)}
+          >
+            {formatHvacMode(mode, t)}
+          </button>
+        ))}
+      </div>
+
+      <div className="rwv-device-status">
+        <span className={pending ? 'rwv-status-syncing' : state.isOn ? 'rwv-status-on' : 'rwv-status-off'}>
+          {pending ? t.app.sending : state.isOn ? t.app.on : t.app.off}
+        </span>
+        <small>{pending ? t.app.synced : `${t.app.synced} ${formatTime(state.lastSyncedAt, language, t.app.notSynced)}`}</small>
+      </div>
+    </motion.article>
+  );
+}
+
+function SmartDeviceCard({ device }: { device: Device }) {
+  if (device.kind === 'climate') {
+    return <ClimateCard device={device} />;
+  }
+
+  return <DeviceCard device={device} />;
 }
 
 function QuickActions() {
@@ -474,7 +583,7 @@ function AreaDevicePanel({ selectedView }: { selectedView: AreaView }) {
           {selectedView === 'allDevices' ? <AllLightsActions /> : null}
           <div className="rwv-device-grid">
             {visibleDevices.map((device) => (
-              <DeviceCard key={device.id} device={device} />
+              <SmartDeviceCard key={device.id} device={device} />
             ))}
           </div>
         </motion.div>

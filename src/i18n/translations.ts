@@ -89,6 +89,12 @@ export type Translation = {
     lastAction: string;
     lastRun: string;
   };
+  climate: {
+    room: string;
+    target: string;
+    mode: string;
+    modes: Record<'cool' | 'heat' | 'auto' | 'fan_only' | 'off', string>;
+  };
   nav: Record<'overview' | DeviceArea | 'quick', string>;
   sections: Record<'overview' | DeviceArea | 'quick', { kicker: string; title: string; subtitle: string }>;
   devices: Record<DeviceId, { name: string; subtitle: string }>;
@@ -197,6 +203,18 @@ export const translations: Record<Language, Translation> = {
       lastAction: 'פעולה אחרונה',
       lastRun: 'בדיקה אחרונה'
     },
+    climate: {
+      room: 'חדר',
+      target: 'יעד',
+      mode: 'מצב',
+      modes: {
+        cool: 'קירור',
+        heat: 'חימום',
+        auto: 'אוטומטי',
+        fan_only: 'מאוורר',
+        off: 'כבוי'
+      }
+    },
     nav: {
       overview: 'סקירה',
       salon: 'סלון',
@@ -255,6 +273,7 @@ export const translations: Record<Language, Translation> = {
       bathroomLight: { name: 'תאורת אמבטיה', subtitle: 'מתג קיר מקלחת' },
       bedroomFanLight: { name: 'תאורת מאוורר חדר שינה', subtitle: 'גוף תאורה תקרתי' },
       ceilingFan: { name: 'מאוורר תקרה', subtitle: 'אוורור חדר השינה' },
+      bedroomAc: { name: 'מזגן חדר שינה', subtitle: 'Tornado בקרת אקלים' },
       bathroomHeater: { name: 'מחמם אמבטיה', subtitle: 'נוחות במקלחת' }
     },
     scenes: {
@@ -364,6 +383,18 @@ export const translations: Record<Language, Translation> = {
       lastAction: 'Last action',
       lastRun: 'Last run'
     },
+    climate: {
+      room: 'Room',
+      target: 'Target',
+      mode: 'Mode',
+      modes: {
+        cool: 'Cool',
+        heat: 'Heat',
+        auto: 'Auto',
+        fan_only: 'Fan',
+        off: 'Off'
+      }
+    },
     nav: {
       overview: 'Overview',
       salon: 'Salon',
@@ -422,6 +453,7 @@ export const translations: Record<Language, Translation> = {
       bathroomLight: { name: 'Bathroom light', subtitle: 'Shower wall switch' },
       bedroomFanLight: { name: 'Bedroom fan light', subtitle: 'Ceiling fixture' },
       ceilingFan: { name: 'Ceiling fan', subtitle: 'Bedroom airflow' },
+      bedroomAc: { name: 'Bedroom AC', subtitle: 'Tornado climate control' },
       bathroomHeater: { name: 'Bathroom heater', subtitle: 'Shower comfort' }
     },
     scenes: {
@@ -531,6 +563,18 @@ export const translations: Record<Language, Translation> = {
       lastAction: 'Dernière action',
       lastRun: 'Dernière vérification'
     },
+    climate: {
+      room: 'Pièce',
+      target: 'Cible',
+      mode: 'Mode',
+      modes: {
+        cool: 'Froid',
+        heat: 'Chaud',
+        auto: 'Auto',
+        fan_only: 'Ventilation',
+        off: 'Off'
+      }
+    },
     nav: {
       overview: 'Accueil',
       salon: 'Salon',
@@ -589,6 +633,7 @@ export const translations: Record<Language, Translation> = {
       bathroomLight: { name: 'Lumière salle de bain', subtitle: 'Interrupteur douche' },
       bedroomFanLight: { name: 'Lumière ventilateur chambre', subtitle: 'Luminaire plafond' },
       ceilingFan: { name: 'Ventilateur plafond', subtitle: 'Air dans la chambre' },
+      bedroomAc: { name: 'Climatiseur chambre', subtitle: 'Contrôle climat Tornado' },
       bathroomHeater: { name: 'Chauffage salle de bain', subtitle: 'Confort douche' }
     },
     scenes: {

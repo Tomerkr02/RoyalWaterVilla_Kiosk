@@ -109,6 +109,14 @@ export const devices: Device[] = [
     tuya: { deviceId: 'bfed21a4097abed981lg6y', commandCode: 'switch' }
   },
   {
+    id: 'bedroomAc',
+    name: 'Bedroom AC',
+    subtitle: 'Tornado climate control',
+    area: 'bedroom',
+    kind: 'climate',
+    entityId: 'climate.tornado_ac_tornado_air_condition'
+  },
+  {
     id: 'bathroomHeater',
     name: 'Bathroom heater',
     subtitle: 'Shower comfort',
@@ -127,7 +135,11 @@ export const initialDeviceStates: DeviceStateMap = Object.fromEntries(
     {
       isOn: false,
       isAvailable: true,
-      fanSpeed: device.kind === 'fan' ? 0 : undefined
+      fanSpeed: device.kind === 'fan' ? 0 : undefined,
+      currentTemperature: device.kind === 'climate' ? 24 : undefined,
+      targetTemperature: device.kind === 'climate' ? 24 : undefined,
+      hvacMode: device.kind === 'climate' ? 'off' : undefined,
+      hvacAction: device.kind === 'climate' ? 'idle' : undefined
     }
   ])
 ) as DeviceStateMap;
@@ -170,6 +182,7 @@ export const scenes: Scene[] = [
       outdoorWallLight: { isOn: false },
       bathroomLight: { isOn: false },
       bedroomFanLight: { isOn: false },
+      bedroomAc: { isOn: false, hvacMode: 'off' },
       bathroomHeater: { isOn: false }
     }
   }
