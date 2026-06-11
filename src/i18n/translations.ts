@@ -93,7 +93,9 @@ export type Translation = {
     room: string;
     target: string;
     mode: string;
+    activeNow: string;
     modes: Record<'cool' | 'heat' | 'auto' | 'fan_only' | 'off', string>;
+    fanModes: Record<'low' | 'medium' | 'high' | 'auto', string>;
   };
   nav: Record<'overview' | DeviceArea | 'quick', string>;
   sections: Record<'overview' | DeviceArea | 'quick', { kicker: string; title: string; subtitle: string }>;
@@ -207,12 +209,19 @@ export const translations: Record<Language, Translation> = {
       room: 'חדר',
       target: 'יעד',
       mode: 'מצב',
+      activeNow: 'פעיל כעת',
       modes: {
         cool: 'קירור',
         heat: 'חימום',
         auto: 'אוטומטי',
         fan_only: 'מאוורר',
         off: 'כבוי'
+      },
+      fanModes: {
+        low: 'נמוך',
+        medium: 'בינוני',
+        high: 'גבוה',
+        auto: 'אוטו'
       }
     },
     nav: {
@@ -387,12 +396,19 @@ export const translations: Record<Language, Translation> = {
       room: 'Room',
       target: 'Target',
       mode: 'Mode',
+      activeNow: 'Active now',
       modes: {
         cool: 'Cool',
         heat: 'Heat',
         auto: 'Auto',
         fan_only: 'Fan',
         off: 'Off'
+      },
+      fanModes: {
+        low: 'Low',
+        medium: 'Medium',
+        high: 'High',
+        auto: 'Auto'
       }
     },
     nav: {
@@ -567,12 +583,19 @@ export const translations: Record<Language, Translation> = {
       room: 'Pièce',
       target: 'Cible',
       mode: 'Mode',
+      activeNow: 'Actif maintenant',
       modes: {
         cool: 'Froid',
         heat: 'Chaud',
         auto: 'Auto',
         fan_only: 'Ventilation',
         off: 'Off'
+      },
+      fanModes: {
+        low: 'Bas',
+        medium: 'Moyen',
+        high: 'Élevé',
+        auto: 'Auto'
       }
     },
     nav: {

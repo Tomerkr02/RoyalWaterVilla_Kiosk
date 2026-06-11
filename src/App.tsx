@@ -25,7 +25,7 @@ import blueWaterNightImage from './assets/images/royal-water-villa-blue-water-ni
 import { useI18n, useLanguageStore } from './i18n/useLanguageStore';
 import type { Language, Translation } from './i18n/translations';
 import { useSmartHomeStore } from './store/useSmartHomeStore';
-import type { Device, DeviceArea, DeviceId, HvacMode } from './types/devices';
+import type { ClimateFanMode, Device, DeviceArea, DeviceId, HvacMode } from './types/devices';
 
 type AreaView = DeviceArea | 'allDevices';
 type View = 'home' | 'shabbat' | AreaView;
@@ -263,9 +263,18 @@ function DeviceCard({ device }: { device: Device }) {
 }
 
 const climateModes: HvacMode[] = ['cool', 'heat', 'auto', 'fan_only'];
+const defaultClimateFanModes: ClimateFanMode[] = ['low', 'medium', 'high', 'auto'];
 
 function formatHvacMode(mode: HvacMode | undefined, t: Translation) {
   return t.climate.modes[mode ?? 'auto'];
+}
+
+function formatClimateFanMode(mode: ClimateFanMode, t: Translation) {
+  if (mode === 'low' || mode === 'medium' || mode === 'high' || mode === 'auto') {
+    return t.climate.fanModes[mode];
+  }
+
+  return mode.replace(/_/g, ' ');
 }
 
 function ClimateCard({ device }: { device: Device }) {
@@ -275,10 +284,12 @@ function ClimateCard({ device }: { device: Device }) {
   const setDeviceState = useSmartHomeStore((store) => store.setDeviceState);
   const setClimateTemperature = useSmartHomeStore((store) => store.setClimateTemperature);
   const setClimateMode = useSmartHomeStore((store) => store.setClimateMode);
+  const setClimateFanMode = useSmartHomeStore((store) => store.setClimateFanMode);
   const copy = t.devices[device.id];
   const targetTemperature = state.targetTemperature ?? 24;
   const currentTemperature = state.currentTemperature ?? targetTemperature;
   const activeMode = state.hvacMode && state.hvacMode !== 'off' ? state.hvacMode : 'cool';
+  const fanModes = state.availableFanModes?.length ? state.availableFanModes : defaultClimateFanModes;
 
   const changeTemperature = (delta: number) => {
     const nextTemperature = Math.min(30, Math.max(16, targetTemperature + delta));
@@ -307,7 +318,10 @@ function ClimateCard({ device }: { device: Device }) {
       </div>
 
       <div className="rwv-climate-title">
-        <h3>{copy.name}</h3>
+        <div className="rwv-climate-name-row">
+          <h3>{copy.name}</h3>
+          {state.isOn ? <span>{t.climate.activeNow}</span> : null}
+        </div>
         <p>{copy.subtitle}</p>
       </div>
 
@@ -349,6 +363,19 @@ function ClimateCard({ device }: { device: Device }) {
         ))}
       </div>
 
+      <div className="rwv-climate-fan-modes">
+        {fanModes.map((mode) => (
+          <button
+            key={mode}
+            type="button"
+            className={state.fanMode === mode ? 'active' : ''}
+            onClick={() => void setClimateFanMode(device.id, mode)}
+          >
+            {formatClimateFanMode(mode, t)}
+          </button>
+        ))}
+      </div>
+
       <div className="rwv-device-status">
         <span className={pending ? 'rwv-status-syncing' : state.isOn ? 'rwv-status-on' : 'rwv-status-off'}>
           {pending ? t.app.sending : state.isOn ? t.app.on : t.app.off}
@@ -365,6 +392,38 @@ function SmartDeviceCard({ device }: { device: Device }) {
   }
 
   return <DeviceCard device={device} />;
+}
+
+function HomeClimateStatus() {
+  const { t } = useI18n();
+  const state = useSmartHomeStore((store) => store.states.bedroomAc);
+  const roomTemperature = Math.round(state.currentTemperature ?? state.targetTemperature ?? 24);
+  const targetTemperature = Math.round(state.targetTemperature ?? 24);
+
+  return (
+    <div className={['rwv-home-climate-widget', state.isOn ? 'active' : ''].join(' ')}>
+      <div>
+        <span>🌡️</span>
+        <strong>{roomTemperature}°</strong>
+      </div>
+      <div>
+        <span>{state.isOn ? '❄️' : ''}</span>
+        <strong>{state.isOn ? t.climate.activeNow : `${t.devices.bedroomAc.name} ${t.app.off}`}</strong>
+      </div>
+      {state.isOn ? (
+        <>
+          <div>
+            <span>🎯</span>
+            <strong>{t.climate.target} {targetTemperature}°</strong>
+          </div>
+          <div>
+            <span />
+            <strong>{formatHvacMode(state.hvacMode, t)}</strong>
+          </div>
+        </>
+      ) : null}
+    </div>
+  );
 }
 
 function QuickActions() {
@@ -446,6 +505,7 @@ function HomeScreen({ openShabbat }: { openShabbat: () => void }) {
   return (
     <>
       <Hero />
+      <HomeClimateStatus />
       <ShabbatHomeCard onOpen={openShabbat} />
     </>
   );

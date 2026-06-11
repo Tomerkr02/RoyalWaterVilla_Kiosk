@@ -1,5 +1,5 @@
 import { devices } from '../config/devices';
-import type { Device, DeviceId, DeviceState, DeviceStateMap, HvacMode } from '../types/devices';
+import type { ClimateFanMode, Device, DeviceId, DeviceState, DeviceStateMap, HvacMode } from '../types/devices';
 import type { SmartHomeProvider } from './SmartHomeProvider';
 
 type HomeAssistantEntity = {
@@ -11,6 +11,8 @@ type HomeAssistantEntity = {
     current_temperature?: number;
     temperature?: number;
     hvac_action?: string;
+    fan_mode?: ClimateFanMode;
+    fan_modes?: ClimateFanMode[];
   };
 };
 
@@ -72,6 +74,8 @@ function toDeviceState(entity: HomeAssistantEntity): DeviceState {
     targetTemperature: entity.attributes?.temperature,
     hvacMode: isClimate ? (entity.state as HvacMode) : undefined,
     hvacAction: entity.attributes?.hvac_action,
+    fanMode: entity.attributes?.fan_mode,
+    availableFanModes: entity.attributes?.fan_modes,
     lastSyncedAt: Date.now()
   };
 }
@@ -174,6 +178,17 @@ async function callSetHvacMode(config: HomeAssistantConfig, device: Device, hvac
   });
 }
 
+async function callSetFanMode(config: HomeAssistantConfig, device: Device, fanMode: ClimateFanMode) {
+  await request<unknown>(config, '/service', {
+    method: 'POST',
+    body: JSON.stringify({
+      domain: 'climate',
+      service: 'set_fan_mode',
+      data: { entity_id: device.entityId, fan_mode: fanMode }
+    })
+  });
+}
+
 async function fetchEntityState(config: HomeAssistantConfig, device: Device) {
   if (import.meta.env.DEV) {
     console.info('[HA] fetch entity state', {
@@ -260,6 +275,10 @@ export function createHomeAssistantProvider(): SmartHomeProvider | null {
 
         if (patch.hvacMode && patch.hvacMode !== 'off') {
           await callSetHvacMode(config, device, patch.hvacMode);
+        }
+
+        if (patch.fanMode) {
+          await callSetFanMode(config, device, patch.fanMode);
         }
       }
 

@@ -4,6 +4,8 @@ export type DeviceKind = 'switch' | 'light' | 'fan' | 'heater' | 'climate';
 
 export type HvacMode = 'cool' | 'heat' | 'auto' | 'fan_only' | 'off';
 
+export type ClimateFanMode = 'low' | 'medium' | 'high' | 'auto' | string;
+
 export type DeviceId =
   | 'salonCeilingSpots'
   | 'salonLedWall'
@@ -28,6 +30,8 @@ export type DeviceState = {
   targetTemperature?: number;
   hvacMode?: HvacMode;
   hvacAction?: string;
+  fanMode?: ClimateFanMode;
+  availableFanModes?: ClimateFanMode[];
   lastSyncedAt?: number;
 };
 

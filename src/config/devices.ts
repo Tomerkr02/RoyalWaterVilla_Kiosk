@@ -139,7 +139,9 @@ export const initialDeviceStates: DeviceStateMap = Object.fromEntries(
       currentTemperature: device.kind === 'climate' ? 24 : undefined,
       targetTemperature: device.kind === 'climate' ? 24 : undefined,
       hvacMode: device.kind === 'climate' ? 'off' : undefined,
-      hvacAction: device.kind === 'climate' ? 'idle' : undefined
+      hvacAction: device.kind === 'climate' ? 'idle' : undefined,
+      fanMode: device.kind === 'climate' ? 'auto' : undefined,
+      availableFanModes: device.kind === 'climate' ? ['low', 'medium', 'high', 'auto'] : undefined
     }
   ])
 ) as DeviceStateMap;
