@@ -15,7 +15,7 @@ export const devices: Device[] = [
     subtitle: 'Warm recessed lighting',
     area: 'salon',
     kind: 'light',
-    entityId: 'switch.tvrt_slvn_salon_light_switch_1',
+    entityId: 'switch.tvrt_slvn_salon_light_switch_2',
     tuya: { deviceId: 'bfae97a0468699bf6es1mx', commandCode: 'switch_2' }
   },
   {
@@ -24,7 +24,7 @@ export const devices: Device[] = [
     subtitle: 'Ambient feature wall',
     area: 'salon',
     kind: 'light',
-    entityId: 'switch.tvrt_slvn_salon_light_switch_2',
+    entityId: 'switch.tvrt_slvn_salon_light_switch_1',
     tuya: { deviceId: 'bfae97a0468699bf6es1mx', commandCode: 'switch_1' }
   },
   {
