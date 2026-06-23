@@ -60,7 +60,7 @@ export const devices: Device[] = [
     subtitle: 'Waterline glow',
     area: 'pool',
     kind: 'light',
-    entityId: 'switch.tvrt_brykh_vbr_pool_light_bar_switch_1',
+    entityId: 'switch.tvrt_brykh_vbr_pool_light_bar_switch_2',
     tuya: { deviceId: 'bf2af07eae210d7a388lkx', commandCode: 'switch_2' }
   },
   {
@@ -69,7 +69,7 @@ export const devices: Device[] = [
     subtitle: 'Pool bar counter',
     area: 'pool',
     kind: 'light',
-    entityId: 'switch.tvrt_brykh_vbr_pool_light_bar_switch_2',
+    entityId: 'switch.tvrt_brykh_vbr_pool_light_bar_switch_1',
     tuya: { deviceId: 'bf2af07eae210d7a388lkx', commandCode: 'switch_1' }
   },
   {
