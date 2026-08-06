@@ -80,16 +80,30 @@ export default defineConfig(({ mode }) => {
     return body;
   };
 
-  const callService = (domain: string, service: string, data: unknown) => {
+  const callService = async (domain: string, service: string, data: unknown) => {
     if (!/^(switch|light|fan|climate)$/.test(domain) || !/^[a-zA-Z0-9_]+$/.test(service)) {
       const error = new Error('Invalid Home Assistant service') as Error & { statusCode?: number };
       error.statusCode = 400;
       throw error;
     }
-    return haRequest(`/api/services/${domain}/${service}`, {
-      method: 'POST',
-      body: JSON.stringify(data ?? {})
-    });
+    try {
+      return await haRequest(`/api/services/${domain}/${service}`, {
+        method: 'POST',
+        body: JSON.stringify(data ?? {})
+      });
+    } catch (error) {
+      const typedError = error as Error & { details?: { status?: number; body?: unknown } };
+      const serviceError = typedError as Error & { statusCode?: number; details?: unknown };
+      serviceError.details = {
+        requestedDomain: domain,
+        requestedService: service,
+        entity_id: typeof data === 'object' && data !== null && 'entity_id' in data ? data.entity_id : undefined,
+        haStatus: typedError.details?.status,
+        safeMessage: typedError.message,
+        haBody: typedError.details?.body
+      };
+      throw serviceError;
+    }
   };
 
   return {

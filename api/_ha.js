@@ -125,8 +125,20 @@ export async function callService(domain, service, data) {
     throw error;
   }
 
-  return haRequest(`/api/services/${domain}/${service}`, {
-    method: 'POST',
-    body: JSON.stringify(data ?? {})
-  });
+  try {
+    return await haRequest(`/api/services/${domain}/${service}`, {
+      method: 'POST',
+      body: JSON.stringify(data ?? {})
+    });
+  } catch (error) {
+    error.details = {
+      requestedDomain: domain,
+      requestedService: service,
+      entity_id: data?.entity_id,
+      haStatus: error.details?.status,
+      safeMessage: error.message,
+      haBody: error.details?.body
+    };
+    throw error;
+  }
 }

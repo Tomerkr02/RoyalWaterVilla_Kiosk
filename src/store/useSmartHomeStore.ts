@@ -65,9 +65,10 @@ type SmartHomeStore = {
 };
 
 const provider = createProvider();
-const targetedSyncDelays = [300, 900, 1800] as const;
+const targetedSyncDelays = [300, 900, 1800, 3500] as const;
 const defaultShabbatLabels = ['הדלקה', 'כיבוי', 'הדלקה', 'כיבוי'] as const;
 const executedStorageKey = 'royal-water-villa-shabbat-executed-actions';
+const actionVersions = new Map<DeviceId, number>();
 let shabbatRunnerBusy = false;
 
 function createDefaultShabbatMode(): ShabbatModeState {
@@ -155,6 +156,16 @@ function writeExecutedKeys(keys: Set<string>) {
   window.localStorage.setItem(executedStorageKey, JSON.stringify([...keys]));
 }
 
+function nextActionVersion(deviceId: DeviceId) {
+  const nextVersion = (actionVersions.get(deviceId) ?? 0) + 1;
+  actionVersions.set(deviceId, nextVersion);
+  return nextVersion;
+}
+
+function isCurrentActionVersion(deviceId: DeviceId, version: number) {
+  return actionVersions.get(deviceId) === version;
+}
+
 export const useSmartHomeStore = create<SmartHomeStore>()(
   persist(
     (set, get) => ({
@@ -198,6 +209,7 @@ export const useSmartHomeStore = create<SmartHomeStore>()(
     const device = get().devices.find((item) => item.id === deviceId);
     const targetState = typeof patch.isOn === 'boolean' ? patch.isOn : optimisticState.isOn;
     const actionLabel = `${deviceId} -> ${targetState ? 'on' : 'off'} (${device?.entityId ?? 'no entity'})`;
+    const actionVersion = nextActionVersion(deviceId);
 
     if (import.meta.env.DEV) {
       console.info('[SmartHome] optimistic command', {
@@ -206,7 +218,8 @@ export const useSmartHomeStore = create<SmartHomeStore>()(
         mappedEntityId: device?.entityId,
         currentState: previous,
         targetState,
-        patch
+        patch,
+        actionVersion
       });
     }
 
@@ -229,8 +242,16 @@ export const useSmartHomeStore = create<SmartHomeStore>()(
     targetedSyncDelays.forEach((delay) => {
       window.setTimeout(() => {
         void (async () => {
+          if (!isCurrentActionVersion(deviceId, actionVersion)) {
+            return;
+          }
+
           try {
             const refreshed = await get().provider.getState(deviceId);
+            if (!isCurrentActionVersion(deviceId, actionVersion)) {
+              return;
+            }
+
             const isFinalRefresh = delay === targetedSyncDelays[targetedSyncDelays.length - 1];
             const shouldApplyRefresh = isFinalRefresh || typeof patch.isOn !== 'boolean' || refreshed.isOn === targetState;
 
@@ -257,6 +278,7 @@ export const useSmartHomeStore = create<SmartHomeStore>()(
                 provider: get().provider.name,
                 deviceId,
                 mappedEntityId: device?.entityId,
+                actionVersion,
                 delayMs: delay,
                 applied: shouldApplyRefresh,
                 refreshed
@@ -264,7 +286,7 @@ export const useSmartHomeStore = create<SmartHomeStore>()(
             }
           } catch (error) {
             const isFinalRefresh = delay === targetedSyncDelays[targetedSyncDelays.length - 1];
-            if (isFinalRefresh) {
+            if (isFinalRefresh && isCurrentActionVersion(deviceId, actionVersion)) {
               set((store) => ({
                 pending: {
                   ...store.pending,
@@ -277,6 +299,7 @@ export const useSmartHomeStore = create<SmartHomeStore>()(
                 provider: get().provider.name,
                 deviceId,
                 mappedEntityId: device?.entityId,
+                actionVersion,
                 delayMs: delay,
                 error
               });
@@ -293,12 +316,13 @@ export const useSmartHomeStore = create<SmartHomeStore>()(
           provider: get().provider.name,
           deviceId,
           mappedEntityId: device?.entityId,
+          actionVersion,
           confirmed
         });
       }
       const shouldApplyConfirmed = get().provider.name === 'Mock' || typeof patch.isOn !== 'boolean' || confirmed.isOn === targetState;
       set((store) => ({
-        states: shouldApplyConfirmed
+        states: isCurrentActionVersion(deviceId, actionVersion) && shouldApplyConfirmed
           ? {
               ...store.states,
               [deviceId]: { ...optimisticState, ...confirmed }
@@ -306,9 +330,9 @@ export const useSmartHomeStore = create<SmartHomeStore>()(
           : store.states,
         pending: {
           ...store.pending,
-          [deviceId]: store.provider.name === 'Mock' ? false : store.pending[deviceId]
+          [deviceId]: isCurrentActionVersion(deviceId, actionVersion) && store.provider.name === 'Mock' ? false : store.pending[deviceId]
         },
-        lastSyncAt: shouldApplyConfirmed ? Date.now() : store.lastSyncAt,
+        lastSyncAt: isCurrentActionVersion(deviceId, actionVersion) && shouldApplyConfirmed ? Date.now() : store.lastSyncAt,
         health: store.provider.getHealth(),
         debug: {
           ...store.debug,
@@ -322,11 +346,16 @@ export const useSmartHomeStore = create<SmartHomeStore>()(
           provider: get().provider.name,
           deviceId,
           mappedEntityId: device?.entityId,
+          actionVersion,
           previous,
           optimisticState,
           error
         });
       }
+      if (!isCurrentActionVersion(deviceId, actionVersion)) {
+        return;
+      }
+
       set((store) => ({
         states: {
           ...store.states,

@@ -25,10 +25,6 @@ type StatesResponse = {
   states: HomeAssistantEntity[];
 };
 
-type ToggleResponse = {
-  state: HomeAssistantEntity;
-};
-
 const mappedDevices = devices.filter((device) => device.entityId);
 const deviceById = new Map(mappedDevices.map((device) => [device.id, device]));
 const deviceByEntity = new Map(mappedDevices.map((device) => [device.entityId, device]));
@@ -143,12 +139,16 @@ async function callPowerService(config: HomeAssistantConfig, device: Device, isO
       targetState: isOn,
       serviceDomain: service.domain,
       serviceName: service.service,
-      requestUrl: `${config.apiBaseUrl}/toggle`
+      requestUrl: `${config.apiBaseUrl}/service`
     });
   }
-  await request<ToggleResponse>(config, '/toggle', {
+  await request<unknown>(config, '/service', {
     method: 'POST',
-    body: JSON.stringify({ entity_id: device.entityId, is_on: isOn })
+    body: JSON.stringify({
+      domain: service.domain,
+      service: service.service,
+      data: { entity_id: device.entityId }
+    })
   });
 }
 
