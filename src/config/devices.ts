@@ -15,7 +15,7 @@ export const devices: Device[] = [
     subtitle: 'Warm recessed lighting',
     area: 'salon',
     kind: 'light',
-    entityId: 'switch.tvrt_slvn_salon_light_switch_2',
+    entityId: 'switch.tvrt_slvn_salon_light_switch_2_2',
     tuya: { deviceId: 'bfae97a0468699bf6es1mx', commandCode: 'switch_2' }
   },
   {
@@ -24,7 +24,7 @@ export const devices: Device[] = [
     subtitle: 'Ambient feature wall',
     area: 'salon',
     kind: 'light',
-    entityId: 'switch.tvrt_slvn_salon_light_switch_1',
+    entityId: 'switch.tvrt_slvn_salon_light_switch_1_2',
     tuya: { deviceId: 'bfae97a0468699bf6es1mx', commandCode: 'switch_1' }
   },
   {
@@ -33,7 +33,7 @@ export const devices: Device[] = [
     subtitle: 'Outdoor canopy',
     area: 'outdoor',
     kind: 'light',
-    entityId: 'switch.tvrt_prgvlh_pergola_light_switch_1',
+    entityId: 'switch.tvrt_prgvlh_pergola_light',
     tuya: { deviceId: 'bfa046217ed22cbb88x6mw', commandCode: 'switch_1' }
   },
   {
@@ -42,7 +42,7 @@ export const devices: Device[] = [
     subtitle: 'Perimeter wall',
     area: 'outdoor',
     kind: 'light',
-    entityId: 'switch.tvrt_khvmh_wall_light_switch_1',
+    entityId: 'switch.tvrt_khvmh_wall_light',
     tuya: { deviceId: 'bffcde940e008e6f8bsiaj', commandCode: 'switch_1' }
   },
   {
@@ -51,7 +51,7 @@ export const devices: Device[] = [
     subtitle: 'Rear garden path',
     area: 'outdoor',
     kind: 'light',
-    entityId: 'switch.tvrt_shbyl_khvry_back_pathway_light_switch_1',
+    entityId: 'switch.tvrt_shbyl_khvry_back_pathway_light',
     tuya: { deviceId: 'bfb7a879c0ebf0c6e66lc2', commandCode: 'switch_1' }
   },
   {
@@ -60,7 +60,7 @@ export const devices: Device[] = [
     subtitle: 'Waterline glow',
     area: 'pool',
     kind: 'light',
-    entityId: 'switch.tvrt_brykh_vbr_pool_light_bar_switch_2',
+    entityId: 'switch.tvrt_brykh_vbr_pool_light_bar_switch_2_2',
     tuya: { deviceId: 'bf2af07eae210d7a388lkx', commandCode: 'switch_2' }
   },
   {
@@ -69,7 +69,7 @@ export const devices: Device[] = [
     subtitle: 'Pool bar counter',
     area: 'pool',
     kind: 'light',
-    entityId: 'switch.tvrt_brykh_vbr_pool_light_bar_switch_1',
+    entityId: 'switch.tvrt_brykh_vbr_pool_light_bar_switch_1_2',
     tuya: { deviceId: 'bf2af07eae210d7a388lkx', commandCode: 'switch_1' }
   },
   {
@@ -78,7 +78,7 @@ export const devices: Device[] = [
     subtitle: 'Outside shower wall',
     area: 'outdoor',
     kind: 'light',
-    entityId: 'switch.tvrt_mbtyh_vld_qyr_khvts_shower_outside_wall_switch_1',
+    entityId: 'switch.tvrt_mbtyh_vld_qyr_khvts_shower_outside_wall_switch_1_2',
     tuya: { deviceId: 'bfe6a09f4ad1838449xayz', commandCode: 'switch_1' }
   },
   {
@@ -87,7 +87,7 @@ export const devices: Device[] = [
     subtitle: 'Shower wall switch',
     area: 'bathroom',
     kind: 'light',
-    entityId: 'switch.tvrt_mbtyh_vld_qyr_khvts_shower_outside_wall_switch_2',
+    entityId: 'switch.tvrt_mbtyh_vld_qyr_khvts_shower_outside_wall_switch_2_2',
     tuya: { deviceId: 'bfe6a09f4ad1838449xayz', commandCode: 'switch_2' }
   },
   {
@@ -96,7 +96,7 @@ export const devices: Device[] = [
     subtitle: 'Ceiling fixture',
     area: 'bedroom',
     kind: 'light',
-    entityId: 'light.ceiling_fan_with_light',
+    entityId: 'light.ceiling_fan_with_light_2',
     tuya: { deviceId: 'bfed21a4097abed981lg6y', commandCode: 'light' }
   },
   {
@@ -105,7 +105,7 @@ export const devices: Device[] = [
     subtitle: 'Bedroom airflow',
     area: 'bedroom',
     kind: 'fan',
-    entityId: 'fan.ceiling_fan_with_light',
+    entityId: 'fan.ceiling_fan_with_light_2',
     tuya: { deviceId: 'bfed21a4097abed981lg6y', commandCode: 'switch' }
   },
   {
