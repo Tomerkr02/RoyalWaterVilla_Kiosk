@@ -51,7 +51,7 @@ export const devices: Device[] = [
     subtitle: 'Rear garden path',
     area: 'outdoor',
     kind: 'light',
-    entityId: 'switch.tvrt_shbyl_khvry_back_pathway_light',
+    entityId: 'switch.tvrt_shbyl_khvry_back_pathway_light_switch_1',
     tuya: { deviceId: 'bfb7a879c0ebf0c6e66lc2', commandCode: 'switch_1' }
   },
   {
